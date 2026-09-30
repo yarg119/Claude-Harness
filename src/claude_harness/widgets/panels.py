@@ -28,7 +28,7 @@ def effort_bar(level: str, color: str) -> Text:
     return t
 
 
-def ratio_bar(sharp: float, width: int = 12) -> Text:
+def ratio_bar(sharp: float, width: int = 10) -> Text:
     n = round(sharp * width)
     t = Text(); t.append("█" * n, style=JEV); t.append("▒" * (width - n), style=OPUS)
     return t
@@ -120,7 +120,8 @@ class MainSession(Panel):
             t.append("claude is waiting for you → F2", style=f"bold {WARN}")
         else:
             phase = {"idle": "idle", "thinking": f"thinking {spin()}", "tool": f"tool: {clip(s.current_tool, 18)}", "awaiting": "waiting", "done": "exited"}.get(s.phase, s.phase)
-            t.append(f"plans + decides · {fmt_ctx(s.ctx_size)} · ctx {s.ctx_pct:.0f}% · {phase}"[:36], style=DIM)
+            t.append(f"plans + decides · {fmt_ctx(s.ctx_size)} · ctx {s.ctx_pct:.0f}%\n", style=DIM)
+            t.append(clip(phase, 34), style=DIM)
         return t
 
 
@@ -137,7 +138,7 @@ class JevPanel(Panel):
             t.append(f"  {label:<14}", style=FG); t.append_text(ratio_bar(f.sharp_ratio))
             if f.total:
                 t.append(f" {f.last_p:.2f} ", style=f"bold {FG}"); t.append(f"{f.last_verdict:<5}", style=JEV if f.last_verdict == "sharp" else OPUS)
-                t.append(f" {clip(f.last_choice, 8)}", style=DIM)
+                t.append(f" {clip(f.last_choice, 7)}", style=DIM)
             else:
                 t.append(" —", style=DIM)
             t.append("\n")
@@ -155,7 +156,7 @@ class Dispatcher(Static):
     def refresh_state(self, s: SessionState) -> None:
         n = len(s.active_agents)
         tps = s.tokens_per_s[-1] if s.tokens_per_s else 0
-        t = Text(); t.append(" SONNET 5.5 · SUBAGENT DISPATCHER", style=f"bold {SONNET}")
+        t = Text(); t.append(" SONNET 5.5 · DISPATCHER", style=f"bold {SONNET}")
         t.append(f"   {s.subagent_effort[:3]} · {n}x swarm · {tps:.0f} t/s", style=DIM)
         self.query_one("#disp-text", Static).update(t)
         self.query_one("#disp-spark", Sparkline).data = list(s.tokens_per_s)

@@ -71,7 +71,7 @@ async def test_tabs_mode_starts_on_tree_and_fits_90x46(home):
         await pilot.pause(0.6)
         assert app.mode == "tabs" and app.showing == "tree"
         text = html.unescape(re.sub(r"<[^>]+>", "", app.export_screenshot())).replace("\xa0", " ")
-        for needle in ("AGENT TREE", "Fable · on call", "Sonnet 5.5 · medium", "SUBAGENT DISPATCHER", "which worker", "back to main session", "session log", "codex: [", "F2"):
+        for needle in ("AGENT TREE", "Fable · on call", "Sonnet 5.5 · medium", "SONNET 5.5 · DISPATCHER", "which worker", "back to main session", "session log", "codex: [", "F2"):
             assert needle in text, needle
         await pilot.press("f2"); await pilot.pause(0.2)
         assert app.showing == "tty"
