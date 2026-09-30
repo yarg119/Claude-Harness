@@ -208,7 +208,7 @@ class ReturnBox(Panel):
 
 
 class SessionLog(RichLog):
-    DEFAULT_CSS = "SessionLog { border: round #3a3d4d; height: 30%; min-height: 5; max-height: 24; border-title-color: #6b6f80; scrollbar-size: 0 0; }"
+    DEFAULT_CSS = "SessionLog { border: round #3a3d4d; height: 9; border-title-color: #6b6f80; scrollbar-size: 0 0; }"
     ACTOR_STYLE = {"opus": OPUS, "sonnet": SONNET, "fable": FABLE, "jev": JEV, "hook": DIM, "you": FG, "codex": WARN, "haiku": SONNET}
 
     def __init__(self):
@@ -305,8 +305,12 @@ class TreeView(Vertical):
         yield CommandBar(id="cmdbar")
         yield StatusBar(id="status")
 
+    BODY_ROWS = 33   # rows the center column needs at its natural height
+
     def on_resize(self) -> None:
         self.query_one(AdvisorPanel).display = self.size.width >= 90
+        spare = self.size.height - 2 - 2 - self.BODY_ROWS      # header, command+status bars, body
+        self.query_one(SessionLog).styles.height = max(5, min(24, spare))
 
     def refresh_state(self, s: SessionState) -> None:
         for w in self.query(Panel):
