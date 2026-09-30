@@ -1,0 +1,170 @@
+"""Textual app: agent-tree dashboard with an optional embedded `claude` PTY."""
+from __future__ import annotations
+
+import os
+
+from textual.app import App, ComposeResult
+from textual.binding import Binding
+from textual.containers import Horizontal
+from textual.widgets import Static
+
+from . import config, paths
+from .sources.events import JsonlTail, latest_session_id, session_info
+from .sources.jevlog import JevTail
+from .sources.status import read_status
+from .sources.transcript import TranscriptTail
+from .state import SessionState
+from .widgets.panels import TreeView
+from .widgets.terminal_pane import TerminalPane
+
+HELP = """[b]harness[/b]  F1 help · F2 switch claude/tree (tabs mode) · F3 zoom the focused pane · F10 quit
+Split mode needs ≥160 columns; narrower terminals use tabs. All other keys go to claude.
+Toggles: `harness codex on|off`, `harness jev on|off`. Fallback: `harness run --layout tmux` or `harness attach`."""
+
+
+class HarnessApp(App):
+    CSS = """
+    Screen { background: #101117; color: #e6e6ea; }
+    #root { height: 100%; }
+    #tree { width: 40%; min-width: 88; height: 100%; }
+    #tree.full { width: 100%; }
+    #tty-pane.zoom { width: 100%; }
+    .hidden { display: none; }
+    #help { dock: bottom; height: 4; background: #1c1d27; padding: 0 1; }
+    #exit-note { dock: bottom; height: 1; background: #3a2d2d; color: #ffd0d0; padding: 0 1; }
+    """
+    BINDINGS = [
+        Binding("f1", "help", "help", priority=True),
+        Binding("f2", "switch", "view", priority=True),
+        Binding("f3", "zoom", "zoom", priority=True),
+        Binding("f10", "quit_app", "quit", priority=True),
+    ]
+
+    def __init__(self, session_id: str | None, command: list[str] | None, layout: str | None):
+        super().__init__()
+        self.session_id = session_id or latest_session_id() or ""
+        self.command = command
+        self.layout_pref = layout or config.load().get("layout") or "auto"
+        self.mode = "split"; self.zoomed = False; self.showing = "tty"
+        self.state = SessionState(session_id=self.session_id)
+        self.state.apply_config(config.load())
+        self._events = JsonlTail(paths.events_file(self.session_id)) if self.session_id else None
+        self._jev = JevTail(self.session_id) if self.session_id else None
+        self._transcript = TranscriptTail(self.session_id, os.getcwd()) if self.session_id else None
+        self._exited = False
+
+    def compose(self) -> ComposeResult:
+        with Horizontal(id="root"):
+            if self.command:
+                yield TerminalPane(self.command, env={"HARNESS_SESSION_ID": self.session_id}, id="tty-pane")
+            yield TreeView(id="tree")
+        yield Static(HELP, id="help", classes="hidden")
+
+    def on_mount(self) -> None:
+        self.title = "harness"
+        self._apply_layout()
+        self.set_interval(0.25, self._poll)
+        if self.command:
+            self.query_one(TerminalPane).focus_tty()
+
+    # ---- layout ----
+    def _apply_layout(self) -> None:
+        if not self.command:
+            self.mode = "full"
+        elif self.layout_pref in ("split", "tabs"):
+            self.mode = self.layout_pref
+        else:
+            self.mode = "split" if self.size.width >= 160 else "tabs"
+        tree = self.query_one("#tree")
+        if self.mode == "full":
+            tree.add_class("full"); return
+        tty = self.query_one("#tty-pane")
+        tree.remove_class("full")
+        if self.mode == "tabs":
+            tty.set_class(self.showing != "tty", "hidden"); tree.set_class(self.showing != "tree", "hidden")
+            if self.showing == "tree":
+                tree.add_class("full")
+        else:
+            tty.remove_class("hidden"); tree.remove_class("hidden")
+            if self.zoomed:
+                (tree if self.showing == "tree" else tty).remove_class("hidden")
+                (tty if self.showing == "tree" else tree).add_class("hidden")
+                if self.showing == "tree":
+                    tree.add_class("full")
+
+    def on_resize(self) -> None:
+        if self.layout_pref == "auto":
+            self._apply_layout()
+
+    def action_help(self) -> None:
+        self.query_one("#help").toggle_class("hidden")
+
+    def action_switch(self) -> None:
+        if not self.command:
+            return
+        self.showing = "tree" if self.showing == "tty" else "tty"
+        self._apply_layout()
+        if self.showing == "tty":
+            self.query_one(TerminalPane).focus_tty()
+
+    def action_zoom(self) -> None:
+        if not self.command:
+            return
+        self.zoomed = not self.zoomed
+        self._apply_layout()
+        if self.showing == "tty":
+            self.query_one(TerminalPane).focus_tty()
+
+    def action_quit_app(self) -> None:
+        if self.command:
+            self.query_one(TerminalPane).terminate_child()
+        self.exit(0)
+
+    def on_unmount(self) -> None:
+        if self.command:
+            try:
+                self.query_one(TerminalPane).terminate_child()
+            except Exception:  # noqa: BLE001
+                pass
+
+    def on_key(self, event) -> None:
+        if self._exited:
+            self.exit(self.query_one(TerminalPane).exit_code or 0)
+
+    def on_terminal_pane_exited(self, message: TerminalPane.Exited) -> None:
+        self._exited = True
+        self.state.phase = "done"
+        self.state.add_log("hook", f"claude exited (code {message.code}) — press any key to close", "", "warn")
+        self.mount(Static(f" claude exited with code {message.code}. Press any key to close.", id="exit-note"))
+
+    # ---- data ----
+    def _poll(self) -> None:
+        s = self.state
+        if not self.session_id:
+            self.session_id = latest_session_id() or ""
+            if self.session_id:
+                s.session_id = self.session_id
+                self._events = JsonlTail(paths.events_file(self.session_id)); self._jev = JevTail(self.session_id)
+                self._transcript = TranscriptTail(self.session_id, os.getcwd())
+        if self._events:
+            for ev in self._events.read_new():
+                s.apply_event(ev)
+        if self._transcript:
+            for aid, line in self._transcript.read_new():
+                s.apply_transcript(line, aid)
+        if self._jev:
+            for row in self._jev.read_new():
+                s.apply_jev(row)
+        st = read_status(self.session_id) if self.session_id else None
+        if st:
+            s.apply_status(st)
+        s.apply_config(config.load())
+        if not s.cwd and self.session_id:
+            s.cwd = session_info(self.session_id).get("cwd", "")
+        self.query_one(TreeView).refresh_state(s)
+
+
+def run_app(session_id: str | None, command: list[str] | None, layout: str | None) -> int:
+    app = HarnessApp(session_id, command, layout)
+    result = app.run()
+    return int(result or 0)

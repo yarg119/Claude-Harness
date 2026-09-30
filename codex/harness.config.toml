@@ -1,0 +1,11 @@
+# claude-harness profile for Codex. Activate per run:  codex -p harness   /   codex exec -p harness "..."
+# Layers on top of ~/.codex/config.toml; nothing here edits your base config.
+model_reasoning_effort = "high"
+
+[features]
+hooks = true
+
+[agents]
+# Subagents run at medium effort (mirrors the Sonnet swarm). Leave the model unset to inherit
+# the main model, or pin a cheaper one, e.g. default_subagent_model = "gpt-5.5".
+default_subagent_reasoning_effort = "medium"

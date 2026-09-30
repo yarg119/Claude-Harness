@@ -1,0 +1,27 @@
+{
+  "description": "claude-harness hooks (same scripts as Claude Code; state under ~/.claude/harness)",
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": "__HOOKS__/session-start.sh", "timeout": 10, "statusMessage": "harness: session context" } ] }
+    ],
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "__HOOKS__/user-prompt.sh", "timeout": 8 } ] }
+    ],
+    "PreToolUse": [
+      { "matcher": "Bash|Edit|Write|apply_patch",
+        "hooks": [ { "type": "command", "command": "__HOOKS__/pre-tool-guard.sh", "timeout": 10, "statusMessage": "harness guard" } ] }
+    ],
+    "PostToolUse": [
+      { "matcher": "Edit|Write|apply_patch",
+        "hooks": [ { "type": "command", "command": "__HOOKS__/post-edit-check.sh", "timeout": 60, "statusMessage": "harness: format + lint" } ] },
+      { "matcher": "Bash", "hooks": [ { "type": "command", "command": "__HOOKS__/emit.sh", "timeout": 5, "async": true } ] }
+    ],
+    "SubagentStart": [ { "hooks": [ { "type": "command", "command": "__HOOKS__/emit.sh", "timeout": 5, "async": true } ] } ],
+    "SubagentStop": [ { "hooks": [ { "type": "command", "command": "__HOOKS__/emit.sh", "timeout": 5, "async": true } ] } ],
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "__HOOKS__/stop-gate.sh", "timeout": 180, "statusMessage": "harness: stop gate" } ] }
+    ],
+    "PreCompact": [ { "hooks": [ { "type": "command", "command": "__HOOKS__/pre-compact.sh", "timeout": 10 } ] } ],
+    "SessionEnd": [ { "hooks": [ { "type": "command", "command": "__HOOKS__/emit.sh", "timeout": 3 } ] } ]
+  }
+}
