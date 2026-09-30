@@ -99,7 +99,7 @@ def _log(session: str, row: dict[str, Any]) -> None:
     try:
         paths.ensure_dirs()
         with paths.jev_file(session or "nosession").open("a") as f:
-            f.write(json.dumps({"ts": time.strftime("%Y-%m-%dT%H:%M:%S"), **row}) + "\n")
+            f.write(json.dumps({"ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), **row}) + "\n")
     except OSError:
         pass
 

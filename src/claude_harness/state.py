@@ -125,6 +125,10 @@ class SessionState:
     _last_out_ts: float = 0.0
 
     # ---- helpers ----
+    @property
+    def actor(self) -> str:
+        return self.model.split()[0] if self.model else "opus"
+
     def add_log(self, actor: str, text: str, right: str = "", level: str = "", ts: str | None = None) -> None:
         self.log.append(LogLine(ts or time.strftime("%H:%M:%S"), actor, text[:160], right[:60], level))
 
@@ -266,7 +270,7 @@ class SessionState:
                         self.last_text = txt[:200]
                         if self.advisor.in_progress:
                             self.advisor.last_applied = txt.split("\n")[0][:120]; self.advisor.in_progress = False
-                        self.add_log("opus" if "opus" in self.model else self.model.split()[0], txt.split("\n")[0][:110], f"effort {self.effort}" if self.effort else "", ts=ts)
+                        self.add_log(self.actor, txt.split("\n")[0][:110], f"effort {self.effort}" if self.effort else "", ts=ts)
                 elif ct == "tool_use":
                     name = c.get("name", ""); inp = c.get("input") or {}
                     self._pending_tools[c.get("id", "")] = (name, str(inp.get("description") or inp.get("subagent_type") or "")[:60])
@@ -277,11 +281,11 @@ class SessionState:
                         if name == "Agent":
                             st = str(inp.get("subagent_type") or "general-purpose"); d = str(inp.get("description", ""))[:60]
                             self._pending_dispatch.append((st, d)); self._dispatch_ids[c.get("id", "")] = st
-                            self.add_log("opus", f"dispatch {st}: {d}", "effort medium", ts=ts)
+                            self.add_log(self.actor, f"dispatch {st}: {d}", "effort medium", ts=ts)
                         elif name in ("Edit", "Write", "MultiEdit"):
-                            self.add_log("opus", f"{name.lower()} {str(inp.get('file_path', '')).split('/')[-1]}", "", ts=ts)
+                            self.add_log(self.actor, f"{name.lower()} {str(inp.get('file_path', '')).split('/')[-1]}", "", ts=ts)
                         elif name == "Bash":
-                            self.add_log("opus", f"$ {str(inp.get('command', ''))[:90]}", "", ts=ts)
+                            self.add_log(self.actor, f"$ {str(inp.get('command', ''))[:90]}", "", ts=ts)
                 elif ct == "server_tool_use" and c.get("name") == "advisor":
                     self.advisor.calls += 1; self.turn_advisor_calls += 1; self.advisor.in_progress = True
                     self.advisor.last_kind = self._advisor_kind(); self.advisor.last_ts = ts or ""

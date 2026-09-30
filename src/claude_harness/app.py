@@ -146,15 +146,20 @@ class HarnessApp(App):
                 s.session_id = self.session_id
                 self._events = JsonlTail(paths.events_file(self.session_id)); self._jev = JevTail(self.session_id)
                 self._transcript = TranscriptTail(self.session_id, os.getcwd())
+        batch: list[tuple[str, int, object]] = []   # (timestamp, kind, payload) merged in time order
         if self._events:
-            for ev in self._events.read_new():
-                s.apply_event(ev)
+            batch += [(ev.get("ts", ""), 0, ev) for ev in self._events.read_new()]
         if self._transcript:
-            for aid, line in self._transcript.read_new():
-                s.apply_transcript(line, aid)
+            batch += [(line.get("timestamp", ""), 1, (aid, line)) for aid, line in self._transcript.read_new()]
         if self._jev:
-            for row in self._jev.read_new():
-                s.apply_jev(row)
+            batch += [(row.get("ts", ""), 2, row) for row in self._jev.read_new()]
+        for _ts, kind, payload in sorted(batch, key=lambda x: (x[0], x[1])):
+            if kind == 0:
+                s.apply_event(payload)
+            elif kind == 1:
+                s.apply_transcript(payload[1], payload[0])
+            else:
+                s.apply_jev(payload)
         st = read_status(self.session_id) if self.session_id else None
         if st:
             s.apply_status(st)
