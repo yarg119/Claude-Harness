@@ -31,10 +31,10 @@
       "Bash(harness *)",
       "WebFetch(domain:code.claude.com)",
       "WebFetch(domain:platform.claude.com)",
-      "Bash(pnpm run *)",
-      "Bash(pnpm test *)",
-      "Bash(bun run *)",
-      "Bash(bun test *)"
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(pnpm *)",
+      "Bash(bun *)"
     ],
     "ask": [
       "Bash(git push *)"
