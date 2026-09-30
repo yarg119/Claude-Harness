@@ -46,8 +46,10 @@ One-time steps Claude Code needs from you:
    and switch back. Without it the setting is silently not applied.
 2. For Codex: open `codex`, run `/hooks`, and trust the harness hooks (hash-pinned). Re-trust after
    editing a hook script. `harness codex off` disables the plugin and the `/done` second pass.
-3. For Jev: `export TYPESAFE_API_KEY=ts_...` in your shell (or put it in `~/.claude/harness/env`,
-   `chmod 600`), then `harness jev on` and `harness jev test`.
+3. For Jev, one key in your shell (or in `~/.claude/harness/env`, `chmod 600`), then
+   `harness jev on && harness jev test`:
+   - `AI_GATEWAY_API_KEY=vck_...` routes through Vercel AI Gateway (`typesafe-ai/jev`), or
+   - `TYPESAFE_API_KEY=ts_...` calls TypeSafe directly, or `OPENROUTER_API_KEY` for OpenRouter.
 
 Note: `model: "opus"` is now the global default, so new sessions start on Opus 5.5; `/model` still
 switches per session, and `harness run --1m` launches `opus[1m]`.

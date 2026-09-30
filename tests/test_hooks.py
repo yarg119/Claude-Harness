@@ -13,7 +13,7 @@ HOOKS = Path(__file__).resolve().parents[1] / "claude" / "hooks"
 @pytest.fixture
 def env(tmp_path):
     e = {**os.environ, "HARNESS_HOME": str(tmp_path / "harness-home"), "CLAUDE_PROJECT_DIR": str(tmp_path)}
-    for k in ("TYPESAFE_API_KEY", "OPENROUTER_API_KEY"):
+    for k in ("AI_GATEWAY_API_KEY", "TYPESAFE_API_KEY", "OPENROUTER_API_KEY"):
         e.pop(k, None)
     return e
 

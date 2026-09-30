@@ -272,8 +272,8 @@ def set_codex(on: bool, log: Log | None = None) -> Log:
 
 def set_jev(on: bool) -> Log:
     log = Log()
-    if on and not (os.environ.get("TYPESAFE_API_KEY") or os.environ.get("OPENROUTER_API_KEY") or _env_file_has_key()):
-        log("WARN: no TYPESAFE_API_KEY (or OPENROUTER_API_KEY) in the environment or ~/.claude/harness/env; hooks will skip Jev.")
+    if on and not (os.environ.get("AI_GATEWAY_API_KEY") or os.environ.get("TYPESAFE_API_KEY") or os.environ.get("OPENROUTER_API_KEY") or _env_file_has_key()):
+        log("WARN: no AI_GATEWAY_API_KEY / TYPESAFE_API_KEY / OPENROUTER_API_KEY in the environment or ~/.claude/harness/env; hooks will skip Jev.")
     config.set_value("jev", on)
     log(f"jev: {'on' if on else 'off'}")
     return log
@@ -282,7 +282,7 @@ def set_jev(on: bool) -> Log:
 def _env_file_has_key() -> bool:
     p = paths.HARNESS_HOME / "env"
     try:
-        return bool(re.search(r"^(export\s+)?(TYPESAFE_API_KEY|OPENROUTER_API_KEY)=", p.read_text(), re.M))
+        return bool(re.search(r"^(export\s+)?(AI_GATEWAY_API_KEY|TYPESAFE_API_KEY|OPENROUTER_API_KEY)=", p.read_text(), re.M))
     except OSError:
         return False
 

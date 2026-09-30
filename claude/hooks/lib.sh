@@ -29,7 +29,7 @@ harness_emit() {
 }
 
 harness_config() { jq -r --arg k "$1" '.[$k] // empty' "$HARNESS_HOME/config.json" 2>/dev/null; }
-harness_jev_on() { [ "$(harness_config jev)" = "true" ] && { [ -n "${TYPESAFE_API_KEY:-}" ] || [ -n "${OPENROUTER_API_KEY:-}" ]; }; }
+harness_jev_on() { [ "$(harness_config jev)" = "true" ] && { [ -n "${AI_GATEWAY_API_KEY:-}" ] || [ -n "${TYPESAFE_API_KEY:-}" ] || [ -n "${OPENROUTER_API_KEY:-}" ]; }; }
 harness_bin() {
   local p
   for p in "$HOME/.local/bin/harness" "$(command -v harness 2>/dev/null)"; do

@@ -158,10 +158,10 @@ def run_checks(live: bool = True) -> list[Check]:
     else:
         out.append(Check("codex cli", "SKIP", "not installed"))
 
-    has_key = bool(os.environ.get("TYPESAFE_API_KEY") or os.environ.get("OPENROUTER_API_KEY"))
+    has_key = bool(os.environ.get("AI_GATEWAY_API_KEY") or os.environ.get("TYPESAFE_API_KEY") or os.environ.get("OPENROUTER_API_KEY"))
     envf = paths.HARNESS_HOME / "env"
     try:
-        has_key = has_key or bool(re.search(r"^(export\s+)?(TYPESAFE_API_KEY|OPENROUTER_API_KEY)=", envf.read_text(), re.M))
+        has_key = has_key or bool(re.search(r"^(export\s+)?(AI_GATEWAY_API_KEY|TYPESAFE_API_KEY|OPENROUTER_API_KEY)=", envf.read_text(), re.M))
     except OSError:
         pass
     out.append(Check("jev toggle + key", "PASS" if (not cfg.get("jev") or has_key) else "FAIL",

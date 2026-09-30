@@ -19,6 +19,8 @@ from . import config, paths
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/systemone"
 OPENROUTER_MODEL = "typesafe/jev-1.13"
+VERCEL_BASE_URL = "https://ai-gateway.vercel.sh/typesafe"   # TypeSafe-compatible API on Vercel AI Gateway
+VERCEL_MODEL = "typesafe-ai/jev"
 ROUTES = {
     "explorer": "The user wants to find, trace, or understand existing code: where something is, how it works, what calls what. Read-only.",
     "researcher": "The user needs external knowledge: a library API, version behaviour, documentation, migration notes, what is current.",
@@ -32,14 +34,25 @@ ROUTES = {
 class JevClient:
     def __init__(self, timeout: float = 4.0):
         self.timeout = timeout
-        self.backend = "typesafe" if os.environ.get("TYPESAFE_API_KEY") else ("openrouter" if os.environ.get("OPENROUTER_API_KEY") else None)
+        self.api_key = None; self.base_url = None; self.model = None
+        if os.environ.get("AI_GATEWAY_API_KEY"):          # Vercel AI Gateway key (vck_...)
+            self.backend = "vercel"; self.api_key = os.environ["AI_GATEWAY_API_KEY"]
+            self.base_url = VERCEL_BASE_URL; self.model = VERCEL_MODEL
+        elif os.environ.get("TYPESAFE_API_KEY"):           # direct TypeSafe key (honours TYPESAFE_BASE_URL)
+            self.backend = "typesafe"; self.api_key = os.environ["TYPESAFE_API_KEY"]
+            self.base_url = os.environ.get("TYPESAFE_BASE_URL") or None
+            self.model = VERCEL_MODEL if (self.base_url and "vercel" in self.base_url) else None
+        elif os.environ.get("OPENROUTER_API_KEY"):
+            self.backend = "openrouter"
+        else:
+            self.backend = None
 
     def available(self) -> bool:
         return self.backend is not None
 
     def ask(self, state: dict[str, Any], questions: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], int]:
         """Return ({question: {choice|noul|score, probabilities, confidence}}, input_tokens)."""
-        if self.backend == "typesafe":
+        if self.backend in ("typesafe", "vercel"):
             return self._typesafe(state, questions)
         if self.backend == "openrouter":
             return self._openrouter(state, questions)
@@ -55,7 +68,12 @@ class JevClient:
                 qs[k] = Noul(instructions=q["instructions"])
             else:
                 qs[k] = Score(instructions=q["instructions"], criteria=q["criteria"])
-        with TypeSafeClient(timeout=self.timeout) as client:
+        kwargs = {"timeout": self.timeout, "api_key": self.api_key}
+        if self.base_url:
+            kwargs["base_url"] = self.base_url
+        if self.model:
+            kwargs["model"] = self.model
+        with TypeSafeClient(**kwargs) as client:
             resp = client.system_one(state=state, questions=qs)
         out = {}
         for k, a in resp.answers.items():
@@ -204,7 +222,7 @@ def hook(fork: str, hook_input: dict[str, Any]) -> dict[str, Any] | None:
 def ping() -> dict[str, Any]:
     client = JevClient()
     if not client.available():
-        return {"ok": False, "detail": "no key"}
+        return {"ok": False, "detail": "no key (AI_GATEWAY_API_KEY, TYPESAFE_API_KEY or OPENROUTER_API_KEY)"}
     t0 = time.time()
     try:
         answers, tokens = client.ask({"shell_command": "ls -la"}, {"risky": {"type": "noul", "instructions": "Is this command destructive?"}})
@@ -217,7 +235,7 @@ def test_forks() -> list[dict[str, Any]]:
     """One sample decision per fork (does not require the toggle to be on)."""
     client = JevClient()
     if not client.available():
-        return [{"error": "no TYPESAFE_API_KEY / OPENROUTER_API_KEY"}]
+        return [{"error": "no AI_GATEWAY_API_KEY / TYPESAFE_API_KEY / OPENROUTER_API_KEY"}]
     thr = float(config.load().get("jev_threshold", 0.8))
     samples = {
         "route": {"prompt": "Where is the retry logic for the payment webhook and what calls it?", "cwd": os.getcwd(), "session_id": "jev-test"},
