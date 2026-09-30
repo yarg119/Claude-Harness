@@ -17,8 +17,8 @@ from .state import SessionState
 from .widgets.panels import TreeView
 from .widgets.terminal_pane import TerminalPane
 
-HELP = """[b]harness[/b]  F1 help · F2 switch claude/tree (tabs mode) · F3 zoom the focused pane · F10 quit
-Split mode needs ≥160 columns; narrower terminals use tabs. All other keys go to claude.
+HELP = """[b]harness[/b]  F1 help · F2 switch tree ⇄ claude · F3 zoom (split mode) · F10 quit (also ends claude)
+Split mode needs ≥160 columns; narrower terminals start on the tree, F2 reaches claude. All other keys go to claude.
 Toggles: `harness codex on|off`, `harness jev on|off`. Fallback: `harness run --layout tmux` or `harness attach`."""
 
 
@@ -45,8 +45,10 @@ class HarnessApp(App):
         self.session_id = session_id or latest_session_id() or ""
         self.command = command
         self.layout_pref = layout or config.load().get("layout") or "auto"
-        self.mode = "split"; self.zoomed = False; self.showing = "tty"
+        self.mode = "split"; self.zoomed = False; self.showing = "tree"   # tree first; F2 flips to claude
         self.state = SessionState(session_id=self.session_id)
+        self.state.embedded = bool(command)
+        self.state.launch_cmd = " ".join(c for c in (command or []) if not c.startswith("--session-id") and len(c) != 36)
         self.state.apply_config(config.load())
         self._events = JsonlTail(paths.events_file(self.session_id)) if self.session_id else None
         self._jev = JevTail(self.session_id) if self.session_id else None
@@ -64,7 +66,7 @@ class HarnessApp(App):
         self.title = "harness"
         self._apply_layout()
         self.set_interval(0.25, self._poll)
-        if self.command:
+        if self.command and (self.mode == "split" or self.showing == "tty"):
             self.query_one(TerminalPane).focus_tty()
 
     # ---- layout ----
@@ -130,6 +132,9 @@ class HarnessApp(App):
     def on_key(self, event) -> None:
         if self._exited:
             self.exit(self.query_one(TerminalPane).exit_code or 0)
+            return
+        if self.command and self.mode == "tabs" and self.showing == "tree" and event.key not in ("f1", "f2", "f3", "f10"):
+            self.action_switch()   # typing while watching the tree jumps to claude
 
     def on_terminal_pane_exited(self, message: TerminalPane.Exited) -> None:
         self._exited = True

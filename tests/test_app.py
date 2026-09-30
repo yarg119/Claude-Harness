@@ -61,4 +61,20 @@ async def test_embedded_pty_runs_and_exits(home):
                 break
         assert app._exited and app.query_one(TerminalPane).exit_code == 3
         assert app.mode == "split"
-        await pilot.press("f2")   # switch works even after exit
+
+
+async def test_tabs_mode_starts_on_tree_and_fits_90x46(home):
+    import html, re
+    from claude_harness.app import HarnessApp
+    app = HarnessApp(home, ["bash", "-c", "sleep 30"], "tabs")
+    async with app.run_test(size=(90, 46)) as pilot:
+        await pilot.pause(0.6)
+        assert app.mode == "tabs" and app.showing == "tree"
+        text = html.unescape(re.sub(r"<[^>]+>", "", app.export_screenshot())).replace("\xa0", " ")
+        for needle in ("AGENT TREE", "Fable · on call", "Sonnet 5.5 · medium", "SUBAGENT DISPATCHER", "which worker", "back to main session", "session log", "codex: [", "F2"):
+            assert needle in text, needle
+        await pilot.press("f2"); await pilot.pause(0.2)
+        assert app.showing == "tty"
+        await pilot.press("f2"); await pilot.pause(0.2)
+        assert app.showing == "tree"
+        await pilot.press("f10")

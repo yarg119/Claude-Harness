@@ -62,14 +62,16 @@ First-session checks worth doing once:
 ## Run
 
 ```bash
-harness run                 # claude inside the dashboard (split ≥160 cols, tabs below)
+harness run                 # tree first; F2 flips to the embedded claude pane (split view when ≥160 cols)
 harness run --1m            # opus[1m]
 harness run -- --resume     # anything after -- goes to claude
 harness attach              # dashboard only, watching the latest session (e.g. in a second tab)
 harness run --layout tmux   # fallback: claude left, dashboard right
 ```
 
-Keys: `F1` help · `F2` switch claude/tree (tabs) · `F3` zoom · `F10` quit. Everything else goes to claude.
+Keys: `F1` help · `F2` switch tree ⇄ claude · `F3` zoom (split) · `F10` quit (also ends claude).
+Typing while the tree is showing jumps to the claude pane. The main box and command bar turn
+yellow with "claude is waiting → F2" when claude needs input.
 
 ## Toggles
 

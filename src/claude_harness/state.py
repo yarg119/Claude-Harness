@@ -116,6 +116,8 @@ class SessionState:
     jev_enabled: bool = False
     codex_enabled: bool = False
     subagent_effort: str = "medium"
+    embedded: bool = False        # claude runs inside the dashboard (F2 reaches it)
+    launch_cmd: str = ""
     tokens_per_s: deque = field(default_factory=lambda: deque([0.0] * 30, maxlen=30))
     log: deque = field(default_factory=lambda: deque(maxlen=300))
     _pending_tools: dict[str, tuple[str, str]] = field(default_factory=dict)   # tool_use_id -> (name, desc)
