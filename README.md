@@ -64,7 +64,8 @@ First-session checks worth doing once:
 ```bash
 harness run                 # tree first; F2 flips to the embedded claude pane (split view when ≥160 cols)
 harness run --1m            # opus[1m]
-harness run -- --resume     # anything after -- goes to claude
+harness run -C ~/Documents/Projects/Verax   # start claude in another repo
+harness run -- --resume     # anything after -- goes to claude (e.g. -- -w my-feature for a new worktree)
 harness attach              # dashboard only, watching the latest session (e.g. in a second tab)
 harness run --layout tmux   # fallback: claude left, dashboard right
 ```

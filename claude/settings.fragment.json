@@ -3,48 +3,213 @@
   "advisorModel": "fable",
   "effortLevel": "high",
   "modelSettings": {
-    "claude-opus-5-5": { "effortLevel": "high" },
-    "claude-sonnet-5-5": { "effortLevel": "medium" }
+    "claude-opus-5-5": {
+      "effortLevel": "high"
+    },
+    "claude-sonnet-5-5": {
+      "effortLevel": "medium"
+    }
   },
-  "statusLine": { "type": "command", "command": "__HOME__/.claude/statusline.sh", "padding": 0 },
+  "statusLine": {
+    "type": "command",
+    "command": "__HOME__/.claude/statusline.sh",
+    "padding": 0
+  },
   "permissions": {
     "allow": [
-      "Bash(git status *)", "Bash(git status)", "Bash(git diff *)", "Bash(git diff)", "Bash(git log *)",
-      "Bash(git branch *)", "Bash(git show *)", "Bash(git add *)", "Bash(git commit *)",
-      "Bash(npm run *)", "Bash(npm test *)", "Bash(pnpm *)", "Bash(bun *)", "Bash(uv run *)", "Bash(pytest *)",
-      "Bash(harness *)", "WebFetch(domain:code.claude.com)", "WebFetch(domain:platform.claude.com)"
+      "Bash(git status *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git diff)",
+      "Bash(git log *)",
+      "Bash(git branch *)",
+      "Bash(git show *)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(uv run *)",
+      "Bash(pytest *)",
+      "Bash(harness *)",
+      "WebFetch(domain:code.claude.com)",
+      "WebFetch(domain:platform.claude.com)",
+      "Bash(pnpm run *)",
+      "Bash(pnpm test *)",
+      "Bash(bun run *)",
+      "Bash(bun test *)"
     ],
-    "ask": [ "Bash(git push *)" ],
-    "deny": [ "Read(./.env)", "Read(./.env.*)", "Read(**/*.pem)", "Read(**/secrets/**)" ]
+    "ask": [
+      "Bash(git push *)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(**/*.pem)",
+      "Read(**/secrets/**)"
+    ]
   },
   "hooks": {
     "SessionStart": [
-      { "hooks": [ { "type": "command", "command": "__HOOKS__/session-start.sh", "timeout": 10, "statusMessage": "harness: session context" } ] }
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__HOOKS__/session-start.sh",
+            "timeout": 10,
+            "statusMessage": "harness: session context"
+          }
+        ]
+      }
     ],
     "UserPromptSubmit": [
-      { "hooks": [ { "type": "command", "command": "__HOOKS__/user-prompt.sh", "timeout": 8 } ] }
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__HOOKS__/user-prompt.sh",
+            "timeout": 8
+          }
+        ]
+      }
     ],
     "PreToolUse": [
-      { "matcher": "Bash|Edit|Write|NotebookEdit|MultiEdit",
-        "hooks": [ { "type": "command", "command": "__HOOKS__/pre-tool-guard.sh", "timeout": 10, "statusMessage": "harness guard" } ] }
+      {
+        "matcher": "Bash|Edit|Write|NotebookEdit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__HOOKS__/pre-tool-guard.sh",
+            "timeout": 10,
+            "statusMessage": "harness guard"
+          }
+        ]
+      }
     ],
     "PostToolUse": [
-      { "matcher": "Edit|Write|NotebookEdit|MultiEdit",
-        "hooks": [ { "type": "command", "command": "__HOOKS__/post-edit-check.sh", "timeout": 60, "statusMessage": "harness: format + lint" } ] },
-      { "hooks": [ { "type": "command", "command": "__HOOKS__/emit.sh", "timeout": 5, "async": true } ] }
+      {
+        "matcher": "Edit|Write|NotebookEdit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__HOOKS__/post-edit-check.sh",
+            "timeout": 60,
+            "statusMessage": "harness: format + lint"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__HOOKS__/emit.sh",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
     ],
     "PostToolUseFailure": [
-      { "hooks": [ { "type": "command", "command": "__HOOKS__/post-failure.sh", "timeout": 8 } ] }
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__HOOKS__/post-failure.sh",
+            "timeout": 8
+          }
+        ]
+      }
     ],
-    "SubagentStart": [ { "hooks": [ { "type": "command", "command": "__HOOKS__/emit.sh", "timeout": 5, "async": true } ] } ],
-    "SubagentStop": [ { "hooks": [ { "type": "command", "command": "__HOOKS__/emit.sh", "timeout": 5, "async": true } ] } ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__HOOKS__/emit.sh",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__HOOKS__/emit.sh",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
     "Stop": [
-      { "hooks": [ { "type": "command", "command": "__HOOKS__/stop-gate.sh", "timeout": 180, "statusMessage": "harness: stop gate (check command)" } ] }
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__HOOKS__/stop-gate.sh",
+            "timeout": 180,
+            "statusMessage": "harness: stop gate (check command)"
+          }
+        ]
+      }
     ],
-    "PreCompact": [ { "hooks": [ { "type": "command", "command": "__HOOKS__/pre-compact.sh", "timeout": 10 } ] } ],
-    "PostCompact": [ { "hooks": [ { "type": "command", "command": "__HOOKS__/emit.sh", "timeout": 5, "async": true } ] } ],
-    "Notification": [ { "hooks": [ { "type": "command", "command": "__HOOKS__/emit.sh", "timeout": 5, "async": true } ] } ],
-    "PostModelSwitch": [ { "hooks": [ { "type": "command", "command": "__HOOKS__/emit.sh", "timeout": 5, "async": true } ] } ],
-    "SessionEnd": [ { "hooks": [ { "type": "command", "command": "__HOOKS__/emit.sh", "timeout": 1 } ] } ]
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__HOOKS__/pre-compact.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__HOOKS__/emit.sh",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__HOOKS__/emit.sh",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostModelSwitch": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__HOOKS__/emit.sh",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__HOOKS__/emit.sh",
+            "timeout": 1
+          }
+        ]
+      }
+    ]
   }
 }

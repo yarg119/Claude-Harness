@@ -118,6 +118,12 @@ def cmd_attach(a: argparse.Namespace) -> int:
 
 def cmd_run(a: argparse.Namespace) -> int:
     from .app import run_app
+    if a.cwd:
+        target = Path(a.cwd).expanduser().resolve()
+        if not target.is_dir():
+            print(f"harness: no such directory: {target}", file=sys.stderr)
+            return 2
+        os.chdir(target)
     sid = str(uuid.uuid4())
     cfg = config.load()
     cmd = ["claude", "--session-id", sid]
@@ -148,6 +154,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--model", default=None); s.add_argument("--effort", default="high")
     s.add_argument("--1m", dest="one_million", action="store_true", help="use opus[1m]")
     s.add_argument("--name", default=None); s.add_argument("--print-cmd", action="store_true")
+    s.add_argument("-C", "--cwd", default=None, help="start claude in this directory (default: current)")
     s.add_argument("claude_args", nargs=argparse.REMAINDER, help="extra args passed to claude (after --)")
     s.set_defaults(fn=cmd_run)
 
