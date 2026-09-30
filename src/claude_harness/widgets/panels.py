@@ -5,7 +5,7 @@ import time
 
 from rich.text import Text
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.containers import Center, Horizontal, Vertical, VerticalScroll
 from textual.widgets import RichLog, Sparkline, Static
 
 from ..state import AGENT_KINDS, SessionState
@@ -208,7 +208,7 @@ class ReturnBox(Panel):
 
 
 class SessionLog(RichLog):
-    DEFAULT_CSS = "SessionLog { border: round #3a3d4d; height: 20%; min-height: 5; max-height: 16; border-title-color: #6b6f80; scrollbar-size: 0 0; }"
+    DEFAULT_CSS = "SessionLog { border: round #3a3d4d; height: 30%; min-height: 5; max-height: 24; border-title-color: #6b6f80; scrollbar-size: 0 0; }"
     ACTOR_STYLE = {"opus": OPUS, "sonnet": SONNET, "fable": FABLE, "jev": JEV, "hook": DIM, "you": FG, "codex": WARN, "haiku": SONNET}
 
     def __init__(self):
@@ -276,8 +276,9 @@ class TreeView(Vertical):
     TreeView { height: 100%; }
     #tree-scroll { height: 1fr; scrollbar-size: 1 1; }
     #tree-body { height: auto; }
-    #center { width: 1fr; height: auto; align: center top; }
-    #agents { width: 100%; max-width: 104; height: 7; align: center top; }
+    #center { width: 1fr; height: auto; }
+    #center Center { height: auto; width: 100%; }
+    #agents { width: 100%; max-width: 104; height: 7; }
     """
 
     def compose(self) -> ComposeResult:
@@ -285,17 +286,21 @@ class TreeView(Vertical):
         with VerticalScroll(id="tree-scroll"), Horizontal(id="tree-body"):
             yield AdvisorPanel(id="advisor")
             with Vertical(id="center"):
-                yield MainSession(id="main")
+                with Center():
+                    yield MainSession(id="main")
                 yield Connector()
-                yield JevPanel(id="jev")
+                with Center():
+                    yield JevPanel(id="jev")
                 yield Connector()
-                yield Dispatcher(id="dispatcher")
+                with Center():
+                    yield Dispatcher(id="dispatcher")
                 yield Connector("▼      ▼      ▼")
-                with Horizontal(id="agents"):
+                with Center(), Horizontal(id="agents"):
                     for k in AGENT_KINDS:
                         yield AgentBox(k)
                 yield Connector()
-                yield ReturnBox(id="return")
+                with Center():
+                    yield ReturnBox(id="return")
         yield SessionLog()
         yield CommandBar(id="cmdbar")
         yield StatusBar(id="status")
