@@ -120,3 +120,22 @@ def test_statusline_renders_and_mirrors(env, tmp_path):
     r = subprocess.run([str(HOOKS.parent / "statusline.sh")], input=json.dumps(payload), capture_output=True, text=True, env=env)
     assert "Opus 5.5" in r.stdout and "72%" in r.stdout and "high" in r.stdout
     assert json.loads((Path(env["HARNESS_HOME"]) / "status" / "sl.json").read_text())["session_id"] == "sl"
+
+
+def test_session_start_injects_context_from_main_checkout(tmp_path, env):
+    main = _repo(tmp_path, "exit 0")
+    (main / "BRAIN.md").write_text("".join(f"line {i}\n" for i in range(1, 301)))
+    (main / ".claude").mkdir()
+    (main / ".claude" / "harness.json").write_text(json.dumps({
+        "context": [{"file": "BRAIN.md", "from": "main", "maxLines": 5, "maxBytes": 4000, "label": "BRAIN index"}],
+        "state": "BRAIN.md + docs/exec-plans/active/<slug>.md"}))
+    g = ["git", "-c", "user.email=t@t", "-c", "user.name=t"]
+    subprocess.run(g + ["add", "-A"], cwd=main, check=True)
+    subprocess.run(g + ["commit", "-qm", "brain"], cwd=main, check=True)
+    wt = tmp_path / "wt"
+    subprocess.run(["git", "worktree", "add", "-q", str(wt), "-b", "feat/x"], cwd=main, check=True)
+    (main / "BRAIN.md").write_text("MAIN-ONLY first line\n" + (main / "BRAIN.md").read_text())   # uncommitted edit on master checkout
+    out = run("session-start.sh", {"session_id": "w", "cwd": str(wt), "hook_event_name": "SessionStart", "source": "startup"}, env)
+    ctx = out["hookSpecificOutput"]["additionalContext"]
+    assert "BRAIN index" in ctx and "MAIN-ONLY first line" in ctx and "line 4" in ctx and "line 5" not in ctx
+    assert "first 5 of 301 lines" in ctx and "durable state for this project" in ctx

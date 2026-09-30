@@ -7,6 +7,7 @@ allowed-tools: Read, Bash(git *), Bash(jq *), Write, Edit
 
 Write the state a fresh session needs. Note: $ARGUMENTS
 
+0. If `.claude/harness.json` has a `state` field (also shown in the session-start context), that is where durable state lives for this project: update it as it describes and skip the progress.json steps below, except the uncommitted-files list and commit message.
 1. Read `.claude/state/progress.json` if it exists (create `.claude/state/` otherwise).
 2. Merge, never overwrite history:
    ```json

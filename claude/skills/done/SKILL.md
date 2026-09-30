@@ -14,5 +14,5 @@ Prove the work is done before saying so. Delivered: $ARGUMENTS
    - Otherwise run the `reviewer` subagent on the diff.
    - Fix blockers and majors, or list them with a reason for leaving them.
 4. Advisor: consult the advisor with the contract, the diff summary and the findings. Ask one question: "what would make this not done?" Act on the answer.
-5. Checkpoint: run `/checkpoint` with a one-line note.
+5. Checkpoint: run `/checkpoint` with a one-line note (it follows `.claude/harness.json` `state` when the project defines one). If the project CLAUDE.md lists extra gates for "done" (for example pre-push gates), run those too.
 6. Report against the contract's acceptance criteria, one line each, marked pass or fail with the evidence (command and output tail). Never mark pass without evidence in this transcript.

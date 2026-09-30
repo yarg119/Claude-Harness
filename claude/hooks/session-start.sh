@@ -38,9 +38,29 @@ fi
 if [ -f "$ROOT/.claude/state/contract.md" ]; then add "[harness] contract: .claude/state/contract.md ($(wc -l < "$ROOT/.claude/state/contract.md" | tr -d ' ') lines)"; else add "[harness] contract: none (run /plan-contract before multi-file work)"; fi
 if [ -f "$ROOT/.claude/state/progress.json" ]; then add "[harness] progress (.claude/state/progress.json):"; add "$(jq -c '{goal, next, blockers, updated_at}' "$ROOT/.claude/state/progress.json" 2>/dev/null | head -c 1500)"; fi
 if [ "$H_SOURCE" = "compact" ] && [ -f "$STATE/precompact.txt" ]; then add "[harness] before compaction:"; add "$(head -c 2500 "$STATE/precompact.txt")"; fi
+# Project context files (.claude/harness.json "context"): injected at every start/resume/compact.
+#   {"file": "BRAIN.md", "from": "main", "maxLines": 160, "maxBytes": 16000, "label": "..."}
+#   from=main reads the main checkout's copy (the source of truth when sessions run in worktrees).
+ctx_budget=6000
+if [ -f "$ROOT/.claude/harness.json" ]; then
+  main_root="$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"; main_root="${main_root%/.git}"
+  while IFS=$'\t' read -r cfile cfrom cmaxl cmaxb clabel; do
+    [ -n "$cfile" ] || continue
+    base="$ROOT"; [ "$cfrom" = "main" ] && [ -n "$main_root" ] && [ -d "$main_root" ] && base="$main_root"
+    path="$base/$cfile"; [ -f "$path" ] || continue
+    total=$(wc -l < "$path" | tr -d ' ')
+    body="$(head -n "$cmaxl" "$path" | head -c "$cmaxb")"
+    add "[harness] ${clabel:-$cfile} (from ${base}; first ${cmaxl} of ${total} lines):"
+    add "$body"
+    ctx_budget=$((ctx_budget + cmaxb + 200))
+  done < <(jq -r '.context // [] | .[] | [(.file // ""), (.from // "root"), ((.maxLines // 150)|tostring), ((.maxBytes // 12000)|tostring), (.label // "")] | @tsv' "$ROOT/.claude/harness.json" 2>/dev/null)
+  state_note="$(jq -r '.state // empty' "$ROOT/.claude/harness.json" 2>/dev/null)"
+  [ -n "$state_note" ] && add "[harness] durable state for this project: $state_note (use this instead of .claude/state/progress.json)"
+fi
+[ "$ctx_budget" -gt 24000 ] && ctx_budget=24000
 codex_state="off"; [ "$(harness_config codex)" = "true" ] && codex_state="on"
 jev_state="off"; harness_jev_on && jev_state="on"
 add "[harness] toggles: codex=$codex_state jev=$jev_state. Rule: consult the advisor before a multi-file plan, when the same error repeats, and before declaring done. Guard, post-edit and stop-gate hooks are active; if one blocks you, fix the cause or ask the user. Never work around a hook."
-ctx="$(printf '%s' "$ctx" | head -c 6000)"
+ctx="$(printf '%s' "$ctx" | head -c "$ctx_budget")"
 if [ "$(harness_host)" = "claude" ]; then harness_ctx SessionStart "$ctx"; else printf '%s\n' "$ctx"; fi
 exit 0
