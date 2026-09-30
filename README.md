@@ -69,9 +69,11 @@ harness attach              # dashboard only, watching the latest session (e.g. 
 harness run --layout tmux   # fallback: claude left, dashboard right
 ```
 
-Keys: `F1` help · `F2` switch tree ⇄ claude · `F3` zoom (split) · `F10` quit (also ends claude).
-Typing while the tree is showing jumps to the claude pane. The main box and command bar turn
-yellow with "claude is waiting → F2" when claude needs input.
+Keys: `F1` help · `F2` show/hide the claude pane · `F3` claude full screen · `F10` quit (also ends claude).
+On terminals 160+ columns wide, F2 puts claude beside the tree; narrower ones flip between them.
+Typing while the tree is showing brings claude up. The main box and command bar turn yellow with
+"claude is waiting → F2" when claude needs input. The layout scales from 90×46 up to full screen;
+shorter windows scroll the tree while the status bars stay pinned.
 
 ## Toggles
 
