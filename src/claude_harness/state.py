@@ -1,6 +1,7 @@
 """Pure session state + reducers fed by hook events, transcript lines, status-line JSON and Jev rows."""
 from __future__ import annotations
 
+import datetime as _dt
 import re
 import time
 from collections import deque
@@ -21,6 +22,19 @@ def agent_kind(type_name: str) -> str:
     if t in AGENT_KINDS or t == "reviewer":
         return t
     return _KIND_ALIASES.get(t, "other")
+
+
+def local_hms(ts: str | None) -> str | None:
+    """ISO timestamp (UTC 'Z' or offset) -> local HH:MM:SS; None if unparsable."""
+    if not ts:
+        return None
+    try:
+        d = _dt.datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=_dt.timezone.utc)
+        return d.astimezone().strftime("%H:%M:%S")
+    except ValueError:
+        return ts[11:19] or None
 
 
 def model_short(model: str | None) -> str:
@@ -181,7 +195,7 @@ class SessionState:
 
     def apply_event(self, ev: dict[str, Any]) -> None:
         kind = ev.get("ev", "")
-        ts = (ev.get("ts") or "")[11:19] or None
+        ts = local_hms(ev.get("ts"))
         if kind == "SessionStart":
             self.cwd = ev.get("cwd") or self.cwd
             self.add_log("hook", f"session {ev.get('source') or 'start'} · check: {ev.get('check') or 'none'}", ts=ts)
@@ -226,7 +240,7 @@ class SessionState:
     def apply_jev(self, row: dict[str, Any]) -> None:
         fork = row.get("fork", "")
         f = self.jev.setdefault(fork, ForkStats())
-        ts = (row.get("ts") or "")[11:19] or None
+        ts = local_hms(row.get("ts"))
         if row.get("error"):
             self.add_log("jev", f"{fork} error: {row['error'][:60]}", "", "warn", ts=ts)
             return
@@ -244,7 +258,7 @@ class SessionState:
     def apply_transcript(self, line: dict[str, Any], agent_id: str | None = None) -> None:
         t = line.get("type")
         msg = line.get("message") or {}
-        ts = (line.get("timestamp") or "")[11:19] or None
+        ts = local_hms(line.get("timestamp"))
         if t == "assistant":
             if not agent_id:
                 self.effort = line.get("perTurnEffort") or line.get("effort") or self.effort

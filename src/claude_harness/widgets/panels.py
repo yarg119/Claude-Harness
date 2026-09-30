@@ -5,7 +5,7 @@ import time
 
 from rich.text import Text
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.widgets import RichLog, Sparkline, Static
 
 from ..state import AGENT_KINDS, SessionState
@@ -28,9 +28,12 @@ def effort_bar(level: str, color: str) -> Text:
     return t
 
 
-def ratio_bar(sharp: float, width: int = 10) -> Text:
+def ratio_bar(sharp: float, width: int = 10, empty: bool = False) -> Text:
+    t = Text()
+    if empty:
+        t.append("░" * width, style=LINE); return t
     n = round(sharp * width)
-    t = Text(); t.append("█" * n, style=JEV); t.append("▒" * (width - n), style=OPUS)
+    t.append("█" * n, style=JEV); t.append("▒" * (width - n), style=OPUS)
     return t
 
 
@@ -74,7 +77,7 @@ class Header(Panel):
 
 
 class AdvisorPanel(Panel):
-    DEFAULT_CSS = "AdvisorPanel { border: round #4a4866; width: 28%; min-width: 26; max-width: 34; height: 100%; }"
+    DEFAULT_CSS = "AdvisorPanel { border: round #4a4866; width: 28%; min-width: 26; max-width: 34; height: auto; min-height: 100%; }"
 
     def render_state(self, s: SessionState) -> Text:
         a = s.advisor; t = Text(); on = bool(a.model)
@@ -136,7 +139,7 @@ class JevPanel(Panel):
         t.append(f"{'forks':>{max(1, inner - 17 - len(total) - 1)}} ", style=DIM); t.append(total + "\n", style=f"bold {FG}")
         for name, label in (("route", "which worker"), ("tool_risk", "which tool"), ("retry_or_stop", "retry or stop")):
             f = s.jev[name]
-            t.append(f"  {label:<14}", style=FG); t.append_text(ratio_bar(f.sharp_ratio, max(10, inner - 36)))
+            t.append(f"  {label:<14}", style=FG); t.append_text(ratio_bar(f.sharp_ratio, max(10, inner - 36), empty=not f.total))
             if f.total:
                 t.append(f" {f.last_p:.2f} ", style=f"bold {FG}"); t.append(f"{f.last_verdict:<5}", style=JEV if f.last_verdict == "sharp" else OPUS)
                 t.append(f" {clip(f.last_choice, max(7, inner - 44))}", style=DIM)
@@ -205,7 +208,7 @@ class ReturnBox(Panel):
 
 
 class SessionLog(RichLog):
-    DEFAULT_CSS = "SessionLog { border: round #3a3d4d; height: 1fr; min-height: 7; border-title-color: #6b6f80; scrollbar-size: 0 0; }"
+    DEFAULT_CSS = "SessionLog { border: round #3a3d4d; height: 20%; min-height: 5; max-height: 16; border-title-color: #6b6f80; scrollbar-size: 0 0; }"
     ACTOR_STYLE = {"opus": OPUS, "sonnet": SONNET, "fable": FABLE, "jev": JEV, "hook": DIM, "you": FG, "codex": WARN, "haiku": SONNET}
 
     def __init__(self):
@@ -271,6 +274,7 @@ class TreeView(Vertical):
     """The whole agent tree (everything except the terminal pane)."""
     DEFAULT_CSS = """
     TreeView { height: 100%; }
+    #tree-scroll { height: 1fr; scrollbar-size: 1 1; }
     #tree-body { height: auto; }
     #center { width: 1fr; height: auto; align: center top; }
     #agents { width: 100%; max-width: 104; height: 7; align: center top; }
@@ -278,7 +282,7 @@ class TreeView(Vertical):
 
     def compose(self) -> ComposeResult:
         yield Header(id="header")
-        with Horizontal(id="tree-body"):
+        with VerticalScroll(id="tree-scroll"), Horizontal(id="tree-body"):
             yield AdvisorPanel(id="advisor")
             with Vertical(id="center"):
                 yield MainSession(id="main")
