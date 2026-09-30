@@ -74,7 +74,7 @@ class Header(Panel):
 
 
 class AdvisorPanel(Panel):
-    DEFAULT_CSS = "AdvisorPanel { border: round #4a4866; width: 26; height: 100%; }"
+    DEFAULT_CSS = "AdvisorPanel { border: round #4a4866; width: 28%; min-width: 26; max-width: 34; height: 100%; }"
 
     def render_state(self, s: SessionState) -> Text:
         a = s.advisor; t = Text(); on = bool(a.model)
@@ -108,7 +108,7 @@ class AdvisorPanel(Panel):
 
 
 class MainSession(Panel):
-    DEFAULT_CSS = "MainSession { border: round #f0955a; width: 38; text-align: center; } MainSession.waiting { border: round #e8c46a; }"
+    DEFAULT_CSS = "MainSession { border: round #f0955a; width: 60%; min-width: 38; max-width: 70; text-align: center; } MainSession.waiting { border: round #e8c46a; }"
 
     def render_state(self, s: SessionState) -> Text:
         self.set_class(s.phase == "awaiting" and s.embedded, "waiting")
@@ -126,19 +126,20 @@ class MainSession(Panel):
 
 
 class JevPanel(Panel):
-    DEFAULT_CSS = "JevPanel { border: round #7ed99a; width: 48; }"
+    DEFAULT_CSS = "JevPanel { border: round #7ed99a; width: 76%; min-width: 48; max-width: 90; }"
 
     def render_state(self, s: SessionState) -> Text:
         t = Text()
         t.append(" JEV · fork layer", style=f"bold {JEV}")
         total = f"{s.jev_forks_total:,}" if s.jev_enabled else "off"
-        t.append(f"{'forks':>{max(1, 46 - 17 - len(total) - 1)}} ", style=DIM); t.append(total + "\n", style=f"bold {FG}")
+        inner = max((self.size.width or 48) - 2, 46)
+        t.append(f"{'forks':>{max(1, inner - 17 - len(total) - 1)}} ", style=DIM); t.append(total + "\n", style=f"bold {FG}")
         for name, label in (("route", "which worker"), ("tool_risk", "which tool"), ("retry_or_stop", "retry or stop")):
             f = s.jev[name]
-            t.append(f"  {label:<14}", style=FG); t.append_text(ratio_bar(f.sharp_ratio))
+            t.append(f"  {label:<14}", style=FG); t.append_text(ratio_bar(f.sharp_ratio, max(10, inner - 36)))
             if f.total:
                 t.append(f" {f.last_p:.2f} ", style=f"bold {FG}"); t.append(f"{f.last_verdict:<5}", style=JEV if f.last_verdict == "sharp" else OPUS)
-                t.append(f" {clip(f.last_choice, 7)}", style=DIM)
+                t.append(f" {clip(f.last_choice, max(7, inner - 44))}", style=DIM)
             else:
                 t.append(" —", style=DIM)
             t.append("\n")
@@ -147,7 +148,7 @@ class JevPanel(Panel):
 
 
 class Dispatcher(Static):
-    DEFAULT_CSS = "Dispatcher { border: round #7fa7d6; width: 48; height: 4; } Dispatcher > Static { height: 1; } Dispatcher > Sparkline { height: 1; margin: 0 1; }"
+    DEFAULT_CSS = "Dispatcher { border: round #7fa7d6; width: 76%; min-width: 48; max-width: 90; height: 4; } Dispatcher > Static { height: 1; } Dispatcher > Sparkline { height: 1; margin: 0 1; }"
 
     def compose(self) -> ComposeResult:
         yield Static(id="disp-text")
@@ -170,7 +171,7 @@ class Connector(Static):
 
 
 class AgentBox(Panel):
-    DEFAULT_CSS = "AgentBox { border: round #3a3d4d; width: 21; height: 7; text-align: center; } AgentBox.running { border: round #7fa7d6; } AgentBox.done { border: round #4c5a6e; }"
+    DEFAULT_CSS = "AgentBox { border: round #3a3d4d; width: 1fr; min-width: 21; max-width: 34; height: 7; text-align: center; } AgentBox.running { border: round #7fa7d6; } AgentBox.done { border: round #4c5a6e; }"
 
     def __init__(self, kind: str):
         super().__init__(); self.kind = kind
@@ -192,7 +193,7 @@ class AgentBox(Panel):
 
 
 class ReturnBox(Panel):
-    DEFAULT_CSS = "ReturnBox { border: round #f0955a; width: 38; text-align: center; } ReturnBox.dim { border: round #3a3d4d; }"
+    DEFAULT_CSS = "ReturnBox { border: round #f0955a; width: 60%; min-width: 38; max-width: 70; text-align: center; } ReturnBox.dim { border: round #3a3d4d; }"
 
     def render_state(self, s: SessionState) -> Text:
         back = bool(s.agents) and not s.active_agents and s.phase in ("thinking", "tool")
@@ -204,7 +205,7 @@ class ReturnBox(Panel):
 
 
 class SessionLog(RichLog):
-    DEFAULT_CSS = "SessionLog { border: round #3a3d4d; height: 7; border-title-color: #6b6f80; scrollbar-size: 0 0; }"
+    DEFAULT_CSS = "SessionLog { border: round #3a3d4d; height: 1fr; min-height: 7; border-title-color: #6b6f80; scrollbar-size: 0 0; }"
     ACTOR_STYLE = {"opus": OPUS, "sonnet": SONNET, "fable": FABLE, "jev": JEV, "hook": DIM, "you": FG, "codex": WARN, "haiku": SONNET}
 
     def __init__(self):
@@ -238,7 +239,7 @@ class CommandBar(Panel):
         t.append(f"{cwd} $ ", style=DIM)
         t.append(clip(s.launch_cmd or "claude", max(self.size.width - len(cwd) - 24, 20)), style=FG)
         if s.embedded:
-            hint = "claude is waiting → F2" if s.phase == "awaiting" else "F2 → claude pane"
+            hint = "claude is waiting → F2" if s.phase == "awaiting" else ("F2 hide claude · F3 zoom" if s.claude_visible else "F2 → claude pane")
             t.append(f"   {hint}", style=f"bold {WARN}" if s.phase == "awaiting" else DIM)
         return t
 
@@ -270,9 +271,9 @@ class TreeView(Vertical):
     """The whole agent tree (everything except the terminal pane)."""
     DEFAULT_CSS = """
     TreeView { height: 100%; }
-    #tree-body { height: 1fr; }
-    #center { width: 1fr; height: 100%; align: center top; }
-    #agents { width: 63; height: 7; }
+    #tree-body { height: auto; }
+    #center { width: 1fr; height: auto; align: center top; }
+    #agents { width: 100%; max-width: 104; height: 7; align: center top; }
     """
 
     def compose(self) -> ComposeResult:

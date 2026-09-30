@@ -74,7 +74,24 @@ async def test_tabs_mode_starts_on_tree_and_fits_90x46(home):
         for needle in ("AGENT TREE", "Fable · on call", "Sonnet 5.5 · medium", "SONNET 5.5 · DISPATCHER", "which worker", "back to main session", "session log", "codex: [", "F2"):
             assert needle in text, needle
         await pilot.press("f2"); await pilot.pause(0.2)
-        assert app.showing == "tty"
+        assert app.showing == "tty" and app.state.claude_visible
         await pilot.press("f2"); await pilot.pause(0.2)
-        assert app.showing == "tree"
+        assert app.showing == "tree" and not app.state.claude_visible
+        await pilot.press("f10")
+
+
+async def test_split_mode_f2_hides_and_shows_claude(home):
+    from claude_harness.app import HarnessApp
+    app = HarnessApp(home, ["bash", "-c", "sleep 30"], "split")
+    async with app.run_test(size=(200, 50)) as pilot:
+        await pilot.pause(0.5)
+        assert app.mode == "split" and not app.state.claude_visible          # tree first
+        await pilot.press("f2"); await pilot.pause(0.2)
+        assert app.state.claude_visible and not app.query_one("#tree").has_class("hidden")
+        await pilot.press("f2"); await pilot.pause(0.2)                       # pressed while the terminal has focus
+        assert not app.state.claude_visible and app.query_one("#tty-pane").has_class("hidden")
+        await pilot.press("f3"); await pilot.pause(0.2)
+        assert app.state.claude_visible and app.query_one("#tree").has_class("hidden")
+        await pilot.press("f3"); await pilot.pause(0.2)
+        assert not app.query_one("#tree").has_class("hidden")
         await pilot.press("f10")

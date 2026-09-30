@@ -22,6 +22,8 @@ class TerminalPane(Widget):
         self.cwd = cwd
         self.exit_code: int | None = None
 
+    HOTKEYS = {"f1": "help", "f2": "switch", "f3": "zoom", "f10": "quit_app"}
+
     def compose(self):
         for k, v in self.env.items():
             os.environ[k] = v
@@ -30,6 +32,21 @@ class TerminalPane(Widget):
         if self.cwd:
             os.chdir(self.cwd)
         from textual_tty import Terminal
+
+        hotkeys = self.HOTKEYS
+
+        class HarnessTerminal(Terminal):
+            """Terminal that hands the dashboard hotkeys back to the app instead of the child."""
+
+            def on_key(self, event) -> None:  # type: ignore[override]
+                action = hotkeys.get(event.key)
+                if action:
+                    event.stop(); event.prevent_default()
+                    self.app.call_later(getattr(self.app, f"action_{action}"))
+                    return
+                super().on_key(event)
+
+        Terminal = HarnessTerminal
         try:  # bittty spawns with a module-level env dict; make sure the child inherits our full environment
             import bittty.pty.unix as _unix
             _unix.UNIX_ENV.update(os.environ)
