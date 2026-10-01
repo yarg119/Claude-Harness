@@ -71,6 +71,9 @@ harness run --layout tmux   # fallback: claude left, dashboard right
 ```
 
 Keys: `F1` help · `F2` show/hide the claude pane · `F3` claude full screen · `F10` quit (also ends claude).
+Scrolling the claude pane: mouse wheel / trackpad, `PgUp`/`PgDn` (`Fn+↑`/`Fn+↓` on a MacBook), and
+`Ctrl+O` for transcript mode with `/` search. The pane always runs Claude Code's fullscreen renderer
+(`CLAUDE_CODE_NO_FLICKER=1`) because that renderer scrolls in-app; the embedded emulator keeps no scrollback.
 On terminals 160+ columns wide, F2 puts claude beside the tree; narrower ones flip between them.
 Typing while the tree is showing brings claude up. The main box and command bar turn yellow with
 "claude is waiting → F2" when claude needs input. The layout scales from 90×46 up to full screen;

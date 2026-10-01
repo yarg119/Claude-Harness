@@ -95,3 +95,40 @@ async def test_split_mode_f2_hides_and_shows_claude(home):
         await pilot.press("f3"); await pilot.pause(0.2)
         assert not app.query_one("#tree").has_class("hidden")
         await pilot.press("f10")
+
+
+MOUSE_CHILD = """
+import os, sys, termios, tty, time
+log = open(sys.argv[1], "wb"); fd = sys.stdin.fileno(); tty.setraw(fd)
+sys.stdout.write("\\x1b[?1049h\\x1b[?1002h\\x1b[?1006h"); sys.stdout.flush()
+os.set_blocking(fd, False); end = time.time() + 15
+while time.time() < end:
+    try:
+        b = os.read(fd, 1024)
+        if b: log.write(b); log.flush()
+    except BlockingIOError: time.sleep(0.02)
+"""
+
+
+async def test_mouse_wheel_reaches_a_mouse_tracking_child(home, tmp_path):
+    """Regression: bittty reports mouse tracking via on_mouse_capture; without the bridge the
+    pane dropped every wheel event and claude's fullscreen transcript could not be scrolled."""
+    import sys
+    from textual import events
+    from claude_harness.app import HarnessApp
+    child = tmp_path / "mouse_child.py"; child.write_text(MOUSE_CHILD); log = tmp_path / "bytes.bin"
+    app = HarnessApp(home, [sys.executable, str(child), str(log)], "split")
+    async with app.run_test(size=(200, 50)) as pilot:
+        await pilot.press("f2")
+        tty = app.query_one("#tty")
+        for _ in range(30):
+            await pilot.pause(0.1)
+            if tty.mouse_mode != "off":
+                break
+        assert tty.mouse_mode == "button"
+        tty.post_message(events.MouseScrollUp(tty, 10, 5, 0, -1, 0, False, False, False, screen_x=10, screen_y=5))
+        await pilot.pause(0.2)
+        await pilot.press("pageup"); await pilot.pause(0.3)
+        data = log.read_bytes()
+        assert b"\x1b[<64;" in data and b"\x1b[5~" in data
+        await pilot.press("f10")

@@ -24,7 +24,15 @@ class TerminalPane(Widget):
 
     HOTKEYS = {"f1": "help", "f2": "switch", "f3": "zoom", "f10": "quit_app"}
 
+    # Markers a parent Claude Code session exports; inherited by the child they make it think it is
+    # nested (e.g. "Transcript saving is off — inherited CLAUDE_CODE_CHILD_SESSION").
+    NESTING_MARKERS = ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_CODE_CHILD_SESSION", "CLAUDE_CODE_SESSION_ID",
+                       "CLAUDE_CODE_HOST_SESSION_ID", "CLAUDE_CODE_SESSION_ATTENDED", "CLAUDE_CODE_MESSAGING_SOCKET",
+                       "CLAUDE_CODE_MESSAGING_TOKEN", "CLAUDE_CODE_BRIDGE_SESSION_ID")
+
     def compose(self):
+        for k in self.NESTING_MARKERS:
+            os.environ.pop(k, None)
         for k, v in self.env.items():
             os.environ[k] = v
         os.environ.setdefault("TERM", "xterm-256color")
@@ -32,11 +40,22 @@ class TerminalPane(Widget):
         if self.cwd:
             os.chdir(self.cwd)
         from textual_tty import Terminal
+        from textual_tty.widget import TerminalChrome
 
         hotkeys = self.HOTKEYS
 
+        class HarnessChrome(TerminalChrome):
+            """bittty 0.1.x reports mouse tracking via on_mouse_capture; textual-tty 0.4 only
+            implements the older on_mouse_mode, so the widget never learned the child wanted the
+            mouse and dropped every wheel event. Bridge the two so scrolling reaches claude."""
+
+            def on_mouse_capture(self, mode: str) -> None:
+                self.widget.mouse_mode = mode
+
         class HarnessTerminal(Terminal):
             """Terminal that hands the dashboard hotkeys back to the app instead of the child."""
+
+            CHROME = HarnessChrome
 
             def on_key(self, event) -> None:  # type: ignore[override]
                 action = hotkeys.get(event.key)
@@ -49,6 +68,8 @@ class TerminalPane(Widget):
         Terminal = HarnessTerminal
         try:  # bittty spawns with a module-level env dict; make sure the child inherits our full environment
             import bittty.pty.unix as _unix
+            for k in self.NESTING_MARKERS:
+                _unix.UNIX_ENV.pop(k, None)
             _unix.UNIX_ENV.update(os.environ)
         except Exception:  # noqa: BLE001
             pass

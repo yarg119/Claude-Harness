@@ -64,7 +64,10 @@ class HarnessApp(App):
     def compose(self) -> ComposeResult:
         with Horizontal(id="root"):
             if self.command:
-                yield TerminalPane(self.command, env={"HARNESS_SESSION_ID": self.session_id}, id="tty-pane")
+                # Force Claude Code's fullscreen renderer in the pane: it scrolls in-app (wheel, PgUp/PgDn),
+                # while the classic renderer relies on terminal scrollback the embedded emulator doesn't keep.
+                # NO_FLICKER=1 also keeps quick exits from counting as failed fullscreen starts.
+                yield TerminalPane(self.command, env={"HARNESS_SESSION_ID": self.session_id, "CLAUDE_CODE_NO_FLICKER": "1"}, id="tty-pane")
             yield TreeView(id="tree")
         yield Static(HELP, id="help", classes="hidden")
 
