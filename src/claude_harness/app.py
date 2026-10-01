@@ -58,7 +58,14 @@ class HarnessApp(App):
             self.state.advisor.model = str(json.load(open(paths.SETTINGS)).get("advisorModel") or "")
         except (OSError, ValueError):
             pass
-        self.state.launch_cmd = " ".join(c for c in (command or []) if not c.startswith("--session-id") and len(c) != 36)
+        shown, skip = [], False
+        for c in command or []:
+            if skip:
+                skip = False; continue
+            if c == "--session-id":
+                skip = True; continue
+            shown.append(c[:8] if len(c) == 36 and c.count("-") == 4 else c)
+        self.state.launch_cmd = " ".join(shown)
         self.state.apply_config(config.load())
         self._events = JsonlTail(paths.events_file(self.session_id)) if self.session_id else None
         self._jev = JevTail(self.session_id) if self.session_id else None

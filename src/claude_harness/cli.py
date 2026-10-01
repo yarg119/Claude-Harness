@@ -116,6 +116,15 @@ def cmd_attach(a: argparse.Namespace) -> int:
     return run_app(session_id=a.session, command=None, layout=a.layout)
 
 
+def _claude_flags(a: argparse.Namespace) -> list[str]:
+    cfg = config.load()
+    flags: list[str] = []
+    if not a.no_advisor:
+        flags += ["--advisor", a.advisor]
+    model = a.model or ("opus[1m]" if (a.one_million or cfg.get("one_million_context")) else "opus")
+    return flags + ["--model", model, "--effort", a.effort]
+
+
 def cmd_run(a: argparse.Namespace) -> int:
     from .app import run_app
     if a.cwd:
@@ -124,16 +133,23 @@ def cmd_run(a: argparse.Namespace) -> int:
             print(f"harness: no such directory: {target}", file=sys.stderr)
             return 2
         os.chdir(target)
-    sid = str(uuid.uuid4())
-    cfg = config.load()
-    cmd = ["claude", "--session-id", sid]
-    if not a.no_advisor:
-        cmd += ["--advisor", a.advisor]
-    model = a.model or ("opus[1m]" if (a.one_million or cfg.get("one_million_context")) else "opus")
-    cmd += ["--model", model, "--effort", a.effort]
-    if a.name:
-        cmd += ["--name", a.name]
-    cmd += a.claude_args
+    use_menu = not (a.new or a.claude_args or a.print_cmd) and sys.stdin.isatty() and sys.stdout.isatty()
+    if use_menu:
+        from .launcher import run_launcher
+        plan = run_launcher(os.getcwd())
+        if plan is None:
+            return 0
+        os.chdir(plan.cwd)
+        sid = plan.session_id
+        cmd = ["claude", *plan.claude_args(), *_claude_flags(a)]
+        if a.name and plan.kind == "new" and not plan.name:
+            cmd += ["--name", a.name]
+    else:
+        sid = str(uuid.uuid4())
+        cmd = ["claude", "--session-id", sid, *_claude_flags(a)]
+        if a.name:
+            cmd += ["--name", a.name]
+        cmd += a.claude_args
     if a.print_cmd:
         print(" ".join(cmd))
         return 0
@@ -146,15 +162,16 @@ def cmd_run(a: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="harness", description="Agent-tree harness and TUI for Claude Code and Codex")
     p.add_argument("--version", action="version", version=f"harness {__version__}")
-    sub = p.add_subparsers(dest="cmd", required=True)
+    sub = p.add_subparsers(dest="cmd")
 
-    s = sub.add_parser("run", help="launch claude inside the dashboard (embedded PTY)")
+    s = sub.add_parser("run", help="launcher menu (resume / new / worktree), then claude inside the dashboard")
     s.add_argument("--layout", choices=["auto", "split", "tabs", "tmux"], default=None)
     s.add_argument("--advisor", default="fable"); s.add_argument("--no-advisor", action="store_true")
     s.add_argument("--model", default=None); s.add_argument("--effort", default="high")
     s.add_argument("--1m", dest="one_million", action="store_true", help="use opus[1m]")
     s.add_argument("--name", default=None); s.add_argument("--print-cmd", action="store_true")
     s.add_argument("-C", "--cwd", default=None, help="start claude in this directory (default: current)")
+    s.add_argument("--new", "--no-menu", dest="new", action="store_true", help="skip the launcher: new session here")
     s.add_argument("claude_args", nargs=argparse.REMAINDER, help="extra args passed to claude (after --)")
     s.set_defaults(fn=cmd_run)
 
@@ -179,7 +196,13 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+SUBCOMMANDS = {"run", "attach", "install", "uninstall", "doctor", "init", "codex", "jev", "jev-hook", "config", "events"}
+
+
 def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if not argv or (argv[0] not in SUBCOMMANDS and argv[0] not in ("-h", "--help", "--version")):
+        argv = ["run", *argv]          # bare `harness` (or `harness -C dir`) = the launcher
     args = build_parser().parse_args(argv)
     if args.cmd == "run" and args.claude_args and args.claude_args[0] == "--":
         args.claude_args = args.claude_args[1:]

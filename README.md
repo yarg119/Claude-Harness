@@ -62,7 +62,9 @@ First-session checks worth doing once:
 ## Run
 
 ```bash
-harness run                 # tree first; F2 flips to the embedded claude pane (split view when ≥160 cols)
+harness                     # launcher: resume one of your 5 latest sessions, or start a new one
+                            #   (here, or in a new git worktree branched from a base you pick)
+harness run --new           # skip the launcher: new session in the current directory
 harness run --1m            # opus[1m]
 harness run -C ~/Documents/Projects/Verax   # start claude in another repo
 harness run -- --resume     # anything after -- goes to claude (e.g. -- -w my-feature for a new worktree)
