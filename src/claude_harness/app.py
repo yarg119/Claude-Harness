@@ -23,6 +23,10 @@ Toggles: `harness codex on|off`, `harness jev on|off`. Fallback: `harness run --
 
 
 class HarnessApp(App):
+    # Textual's own drag-selection spans every panel ("highlights the entire screen"). Claude Code
+    # does its own in-app selection (copied via pbcopy); Fn-drag gives Terminal.app's native one.
+    ALLOW_SELECT = False
+
     CSS = """
     Screen { background: #101117; color: #e6e6ea; }
     #root { height: 100%; }

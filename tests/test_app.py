@@ -132,3 +132,40 @@ async def test_mouse_wheel_reaches_a_mouse_tracking_child(home, tmp_path):
         data = log.read_bytes()
         assert b"\x1b[<64;" in data and b"\x1b[5~" in data
         await pilot.press("f10")
+
+
+
+async def test_drag_leaving_the_pane_still_releases_and_textual_selects_nothing(home, tmp_path):
+    """Regression: a drag that ended outside the pane never sent the release, so claude kept
+    extending its selection ("highlights the entire screen"); Textual also selected across panels."""
+    import sys
+    from claude_harness.app import HarnessApp
+    child = tmp_path / "mouse_child.py"; child.write_text(MOUSE_CHILD); log = tmp_path / "bytes.bin"
+    app = HarnessApp(home, [sys.executable, str(child), str(log)], "split")
+    async with app.run_test(size=(200, 50)) as pilot:
+        await pilot.press("f2")
+        tty = app.query_one("#tty"); tree = app.query_one("#tree")
+        for _ in range(30):
+            await pilot.pause(0.1)
+            if tty.mouse_mode != "off":
+                break
+        await pilot.mouse_down(tty, offset=(5, 3)); await pilot.hover(tty, offset=(30, 10))
+        await pilot.hover(tree, offset=(10, 10)); await pilot.mouse_up(tree, offset=(10, 10))
+        await pilot.pause(0.3)
+        data = log.read_bytes()
+        assert data.count(b"m") >= 1 and data.rstrip().endswith(b"m"), data[-60:]
+        assert data.count(b";11m") == 1                       # one release, clamped to the pane edge
+        assert not app.screen.selections
+        await pilot.press("f10")
+
+
+async def test_textual_selection_is_off_without_a_tracking_child(home):
+    from claude_harness.app import HarnessApp
+    app = HarnessApp(home, ["bash", "-c", "seq 1 60; sleep 20"], "split")
+    async with app.run_test(size=(200, 50)) as pilot:
+        await pilot.press("f2"); await pilot.pause(0.8)
+        tty = app.query_one("#tty"); tree = app.query_one("#tree")
+        await pilot.mouse_down(tty, offset=(2, 2)); await pilot.hover(tree, offset=(10, 10)); await pilot.mouse_up(tree, offset=(10, 10))
+        await pilot.pause(0.2)
+        assert not app.screen.selections and not (app.screen.get_selected_text() or "")
+        await pilot.press("f10")

@@ -57,6 +57,31 @@ class TerminalPane(Widget):
 
             CHROME = HarnessChrome
 
+            # --- mouse: keep press/drag/release paired so claude's own selection ends --- #
+            # Without capture, a drag that leaves the pane never delivers the release; claude then
+            # treats every later move as "button held" and its selection grows across the screen.
+            def _input_mouse(self, event, button, event_type) -> None:  # type: ignore[override]
+                w, h = max(self.size.width, 1), max(self.size.height, 1)
+                x = min(max(event.offset.x, 0), w - 1)
+                y = min(max(event.offset.y, 0), h - 1)
+                mods = {m for m, on in (("shift", event.shift), ("meta", event.meta), ("ctrl", event.ctrl)) if on}
+                self.board.display.input_mouse(x + 1, y + 1, button, event_type, mods)
+
+            _buttons_down = 0
+
+            def on_mouse_down(self, event) -> None:  # type: ignore[override]
+                if self.mouse_mode != "off":
+                    self.capture_mouse()
+                self._buttons_down += 1
+                super().on_mouse_down(event)
+
+            def on_mouse_up(self, event) -> None:  # type: ignore[override]
+                if self._buttons_down > 0:          # Textual can deliver the up twice while captured
+                    self._buttons_down -= 1
+                    super().on_mouse_up(event)
+                if self._buttons_down == 0 and self.app.mouse_captured is self:
+                    self.release_mouse()
+
             def on_key(self, event) -> None:  # type: ignore[override]
                 action = hotkeys.get(event.key)
                 if action:
