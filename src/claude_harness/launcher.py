@@ -286,19 +286,30 @@ def _title(sub: str) -> Static:
     return Static(t, classes="title")
 
 
-def session_option(s: SessionInfo) -> Option:
+def _clip(text: str, n: int) -> str:
+    text = " ".join(text.split())
+    return text if len(text) <= n else text[: max(n - 1, 1)].rstrip() + "…"
+
+
+def session_option(s: SessionInfo, width: int = 94) -> Option:
     t = Text()
-    t.append((s.title or "(untitled)")[:78], style=f"bold {FG}")
+    live = ""
     if s.live_pid:
         where = {"claude-desktop": "Desktop", "cli": "a terminal"}.get(s.live_entry, s.live_entry or "another window")
-        t.append(f"   ● open in {where}", style=WARN)
+        live = f"   ● open in {where}"
+    t.append(_clip(s.title or "(untitled)", width - len(live)), style=f"bold {FG}")
+    if live:
+        t.append(live, style=WARN)
     t.append("\n   ")
-    meta = [s.project, s.branch, {"claude-desktop": "Desktop", "cli": "CLI"}.get(s.entry, s.entry), ago(s.mtime)]
-    t.append(" · ".join(m for m in meta if m), style=DIM)
+    tail = [{"claude-desktop": "Desktop", "cli": "CLI"}.get(s.entry, s.entry), ago(s.mtime)]
     if not s.cwd_exists:
-        t.append(" · folder no longer exists", style=ERR)
+        tail.append("folder no longer exists")
+    tail_s = " · ".join(x for x in tail if x)
+    head_s = _clip(" · ".join(x for x in (s.project, s.branch) if x), width - 3 - len(tail_s) - 3)
+    t.append(f"{head_s} · ", style=DIM)
+    t.append(tail_s, style=ERR if not s.cwd_exists else DIM)
     if s.last_prompt:
-        t.append("\n   last: ", style=DIM); t.append(s.last_prompt[:90], style=f"italic {DIM}")
+        t.append("\n   last: ", style=DIM); t.append(_clip(s.last_prompt, width - 9), style=f"italic {DIM}")
     return Option(t, id=f"s:{s.id}", disabled=not s.cwd_exists)
 
 
@@ -307,11 +318,12 @@ class HomeScreen(Screen):
 
     def compose(self) -> ComposeResult:
         app: LauncherApp = self.app  # type: ignore[assignment]
-        new = Text(); new.append("＋ New session", style=f"bold {JEV}"); new.append(f"\n   in {app.cwd}", style=DIM)
+        width = max(40, min(app.size.width - 10, 94))
+        new = Text(); new.append("＋ New session", style=f"bold {JEV}"); new.append(f"\n   in {_clip(str(app.cwd), width - 6)}", style=DIM)
         opts: list = [Option(new, id="new"), None]
         if app.sessions:
             for s in app.sessions:
-                opts += [session_option(s), None]
+                opts += [session_option(s, width), None]
         else:
             opts.append(Option(Text("no recent sessions found", style=DIM), disabled=True))
         with Vertical(id="frame"):
@@ -367,7 +379,7 @@ class WhereScreen(Screen):
         app: LauncherApp = self.app  # type: ignore[assignment]
         r = app.repo
         here = Text(); here.append("Here", style=f"bold {FG}"); here.append(f"\n   {app.cwd} · branch {r.branch}", style=DIM)
-        wt = Text(); wt.append("New git worktree", style=f"bold {JEV}"); wt.append(f"\n   isolated checkout under {r.main}/.claude/worktrees/, on its own branch", style=DIM)
+        wt = Text(); wt.append("New git worktree", style=f"bold {JEV}"); wt.append(f"\n   isolated checkout in {r.main.name}/.claude/worktrees/<name> on its own branch", style=DIM)
         with Vertical(id="frame"):
             yield _title("new session · where")
             yield OptionList(Option(here, id="here"), None, Option(wt, id="worktree"), id="where-list")
