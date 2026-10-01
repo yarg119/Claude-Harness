@@ -154,7 +154,7 @@ async def test_drag_leaving_the_pane_still_releases_and_textual_selects_nothing(
         await pilot.pause(0.3)
         data = log.read_bytes()
         assert data.count(b"m") >= 1 and data.rstrip().endswith(b"m"), data[-60:]
-        assert data.count(b";11m") == 1                       # one release, clamped to the pane edge
+        assert data.count(b";11m") == 1 and data.count(b"<0;6;4M") == 1   # one press, one release clamped to the pane edge
         assert not app.screen.selections
         await pilot.press("f10")
 

@@ -74,11 +74,13 @@ class TerminalPane(Widget):
                     self.capture_mouse()
                 self._buttons_down += 1
                 super().on_mouse_down(event)
+                event.prevent_default()             # Textual would also call the base handler: one press only
 
             def on_mouse_up(self, event) -> None:  # type: ignore[override]
-                if self._buttons_down > 0:          # Textual can deliver the up twice while captured
+                if self._buttons_down > 0:
                     self._buttons_down -= 1
                     super().on_mouse_up(event)
+                event.prevent_default()
                 if self._buttons_down == 0 and self.app.mouse_captured is self:
                     self.release_mouse()
 
