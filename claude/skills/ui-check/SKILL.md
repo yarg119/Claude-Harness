@@ -24,7 +24,7 @@ playwright-cli -s=$S set-color-scheme dark;  playwright-cli -s=$S screenshot --f
 playwright-cli -s=$S console warning
 ```
 - Run commands one per line as above (zsh does not word-split variables). Add `--full-page` for long pages.
-- If the app switches theme with a class instead of `prefers-color-scheme`, toggle it the way the app does (its theme control, or `playwright-cli -s=$S eval "document.documentElement.classList.toggle('dark')"`) and say which you used.
+- If the app switches theme with a class instead of `prefers-color-scheme`, toggle it the way the app does (its theme control; its stored choice via `playwright-cli -s=$S localstorage-set <key> <value>` then `reload`; or `playwright-cli -s=$S eval "document.documentElement.classList.toggle('dark')"`) and say which you used. Otherwise both shots show the same theme.
 - **Read every screenshot** with the Read tool. Look for overflow and clipping, horizontal scroll, misalignment, contrast, unreadable dark-mode colours, missing focus or hover feedback, and broken empty/loading/error states. Use `snapshot`, `click`, `fill` and `route` (mocking) to reach the states the change touches.
 - `playwright-cli -s=$S close` when done; stop any server you started.
 
