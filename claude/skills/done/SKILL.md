@@ -9,6 +9,7 @@ Prove the work is done before saying so. Delivered: $ARGUMENTS
 
 1. State: `git status --short` and `git diff --stat`. Read `.claude/state/contract.md` if it exists.
 2. Sensors: run the check command (`$HARNESS_CHECK_CMD`, else `.claude/harness.json` `check`, else the discovered one). Paste the tail. A failing check means not done.
+2b. UI: if any changed file is UI (`*.tsx`, `*.jsx`, `*.css`, `*.html`, components or pages), run `/ui-check` against the affected route and act on what it finds.
 3. Second pass:
    - Run `harness config codex` (or read `~/.claude/harness/config.json`). If Codex is on, run `/codex:adversarial-review --wait` and keep its output verbatim.
    - Otherwise run the `reviewer` subagent on the diff.

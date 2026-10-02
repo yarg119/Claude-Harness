@@ -199,6 +199,9 @@ def _replace_block(text: str, block: str) -> str:
 
 def install_codex(bk: Backups, log: Log, dry: bool, force: bool) -> None:
     paths.CODEX_DIR.mkdir(exist_ok=True)
+    for d in sorted((paths.REPO_CODEX / "skills").glob("*")) if (paths.REPO_CODEX / "skills").exists() else []:
+        if d.is_dir():
+            _link(d, paths.CODEX_DIR / "skills" / d.name, log, dry, force)
     _link(paths.REPO_CODEX / "harness.config.toml", paths.CODEX_DIR / "harness.config.toml", log, dry, force)
     base = _load_json(paths.CODEX_DIR / "hooks.json")
     fragment = json.loads(render((paths.REPO_CODEX / "hooks.json").read_text()))

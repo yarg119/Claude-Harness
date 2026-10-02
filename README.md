@@ -91,6 +91,23 @@ harness init <repo>         # drop the project template (AGENTS.md, CLAUDE.md, H
 harness events -f           # tail the hook event stream
 ```
 
+## Frontend / UI toolkit
+
+| Piece | Where | What it does |
+| - | - | - |
+| `/ui-check <url>` | harness skill | playwright-cli screenshots at phone/tablet/desktop × light/dark, console errors, then a guidelines audit of the changed files |
+| `playwright-cli` | `npm i -g @playwright/cli` + `playwright-cli install --skills -g` | token-light browser automation (snapshot refs, screenshots, resize, colour-scheme emulation) |
+| `web-interface-guidelines` | vendored (Vercel, MIT) | `file:line` audit: accessibility, focus, forms, motion, typography, performance, dark mode, i18n |
+| `redesign-existing-projects` | vendored (Taste Skill, MIT) | audit-first upgrade checklist for existing UIs |
+| `design-taste-frontend` | vendored (Taste Skill, MIT) | anti-template rules for landing pages and portfolios (not dashboards) |
+| `image-to-code` | vendored into **Codex** (Taste Skill, MIT) | generates section comps with Codex image generation, then codes to match (marketing pages) |
+| awesome-claude-design | reference, not a skill | 68 brand `DESIGN.md` files at `getdesign.md/<brand>/design-md` for Claude Design |
+
+Vendored skills are pinned by commit in `vendor/skills.json`; `harness skills` lists them and
+`harness skills update [name] [--ref <sha|branch>]` re-fetches and shows the diff for review. Taste
+Skill rules choose their own fonts, icons, motion libraries and palettes, so projects with a locked
+design system should constrain them (Verax does, in `docs/agents/ui.md` and `skillOverrides`).
+
 ## How the pieces enforce the workflow
 
 - **Bounded contracts**: `/plan-contract` writes `.claude/state/contract.md`; `/done` reports against it.

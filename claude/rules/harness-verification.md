@@ -8,6 +8,9 @@ Sensors:
   It is exported as `HARNESS_CHECK_CMD` and shown in the session-start context.
 - Formatter and linter run on every edited file (post-edit hook) and report back. When the
   hook says a file was auto-formatted, re-read it before the next edit.
+- UI changes: `/ui-check <url>` screenshots phone/tablet/desktop in light and dark with
+  playwright-cli and audits the changed files against the Web Interface Guidelines. A typecheck is
+  not visual verification; read the screenshots.
 - Type checker and tests are the acceptance criteria of a contract. Add a test when a bug
   is found; a test resists rot better than a note.
 

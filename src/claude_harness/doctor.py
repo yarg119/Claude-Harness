@@ -126,6 +126,17 @@ def run_checks(live: bool = True) -> list[Check]:
     for sk in ("plan-contract", "done", "checkpoint", "gc", "harness"):
         p = paths.CLAUDE_DIR / "skills" / sk / "SKILL.md"
         out.append(Check(f"skill /{sk}", "PASS" if p.exists() else "FAIL"))
+    for sk in ("ui-check", "web-interface-guidelines", "redesign-existing-projects", "design-taste-frontend"):
+        p = paths.CLAUDE_DIR / "skills" / sk / "SKILL.md"
+        out.append(Check(f"UI skill /{sk}", "PASS" if p.exists() else "FAIL"))
+    pw = shutil.which("playwright-cli")
+    if pw:
+        rc, v = _run([pw, "--version"])
+        out.append(Check("playwright-cli (visual verification)", "PASS" if rc == 0 else "WARN", v[:40]))
+        out.append(Check("playwright-cli skill", "PASS" if (paths.CLAUDE_DIR / "skills" / "playwright-cli" / "SKILL.md").exists() else "WARN",
+                         "run: playwright-cli install --skills -g"))
+    else:
+        out.append(Check("playwright-cli (visual verification)", "WARN", "npm install -g @playwright/cli@latest && playwright-cli install --skills -g"))
     for r in ("harness-delegation", "harness-advisor", "harness-verification"):
         out.append(Check(f"rule {r}", "PASS" if (paths.CLAUDE_DIR / "rules" / f"{r}.md").exists() else "FAIL"))
     cm = paths.CLAUDE_DIR / "CLAUDE.md"
@@ -155,6 +166,11 @@ def run_checks(live: bool = True) -> list[Check]:
         except OSError:
             ab = False
         out.append(Check("codex AGENTS.md harness block", "PASS" if ab else "SKIP"))
+        itc = paths.CODEX_DIR / "skills" / "image-to-code" / "SKILL.md"
+        rc, feats = _run(["codex", "features", "list"])
+        imggen = bool(re.search(r"^image_generation\s+\S+\s+true", feats, re.M))
+        out.append(Check("codex skill image-to-code (+ image generation)", "PASS" if itc.exists() and imggen else ("SKIP" if not itc.exists() else "WARN"),
+                         ("image_generation on" if imggen else "image_generation off") if itc.exists() else "run: harness install --with-codex"))
     else:
         out.append(Check("codex cli", "SKIP", "not installed"))
 

@@ -1,0 +1,42 @@
+{
+  "_comment": "Third-party skills vendored into this repo, pinned by commit. Update with: harness skills update [name] [--ref <sha|branch>]",
+  "skills": [
+    {
+      "name": "design-taste-frontend",
+      "repo": "https://github.com/Leonxlnx/taste-skill",
+      "ref": "ce26fc25c0e5e8cab638f883de62d9a86ee5e45b",
+      "path": "skills/taste-skill/SKILL.md",
+      "target": "claude",
+      "license": "MIT",
+      "homepage": "https://www.tasteskill.dev/"
+    },
+    {
+      "name": "redesign-existing-projects",
+      "repo": "https://github.com/Leonxlnx/taste-skill",
+      "ref": "ce26fc25c0e5e8cab638f883de62d9a86ee5e45b",
+      "path": "skills/redesign-skill/SKILL.md",
+      "target": "claude",
+      "license": "MIT",
+      "homepage": "https://www.tasteskill.dev/"
+    },
+    {
+      "name": "image-to-code",
+      "repo": "https://github.com/Leonxlnx/taste-skill",
+      "ref": "ce26fc25c0e5e8cab638f883de62d9a86ee5e45b",
+      "path": "skills/image-to-code-skill/SKILL.md",
+      "target": "codex",
+      "license": "MIT",
+      "homepage": "https://www.tasteskill.dev/"
+    },
+    {
+      "name": "web-interface-guidelines",
+      "repo": "https://github.com/vercel-labs/web-interface-guidelines",
+      "ref": "e3d624baaf29dc1fc645aff3e38f03e564d2d6b1",
+      "path": "command.md",
+      "target": "claude",
+      "license": "MIT",
+      "homepage": "https://vercel.com/design/guidelines",
+      "transform": "command-to-skill"
+    }
+  ]
+}

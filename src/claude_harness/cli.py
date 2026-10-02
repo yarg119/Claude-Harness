@@ -100,6 +100,12 @@ def cmd_config(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_skills(a: argparse.Namespace) -> int:
+    from . import vendor
+    _print_log(vendor.update(a.name, a.ref) if a.action == "update" else vendor.listing())
+    return 0
+
+
 def cmd_events(a: argparse.Namespace) -> int:
     from .sources.events import latest_session_id, tail_events
     sid = a.session or latest_session_id()
@@ -192,11 +198,14 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("jev"); s.add_argument("state", nargs="?", choices=["on", "off", "test"]); s.set_defaults(fn=cmd_jev)
     s = sub.add_parser("jev-hook", help="(internal) decide a fork from hook stdin"); s.add_argument("fork", choices=["route", "tool_risk", "retry_or_stop"]); s.set_defaults(fn=cmd_jev_hook)
     s = sub.add_parser("config"); s.add_argument("key", nargs="?"); s.add_argument("value", nargs="?"); s.set_defaults(fn=cmd_config)
+    s = sub.add_parser("skills", help="list or update vendored third-party skills")
+    s.add_argument("action", nargs="?", choices=["list", "update"], default="list"); s.add_argument("name", nargs="?")
+    s.add_argument("--ref", default=None, help="commit or branch to vendor (default: the pinned ref)"); s.set_defaults(fn=cmd_skills)
     s = sub.add_parser("events", help="print a session's event stream"); s.add_argument("session", nargs="?"); s.add_argument("-f", "--follow", action="store_true"); s.set_defaults(fn=cmd_events)
     return p
 
 
-SUBCOMMANDS = {"run", "attach", "install", "uninstall", "doctor", "init", "codex", "jev", "jev-hook", "config", "events"}
+SUBCOMMANDS = {"run", "attach", "install", "uninstall", "doctor", "init", "codex", "jev", "jev-hook", "config", "events", "skills"}
 
 
 def main(argv: list[str] | None = None) -> int:
