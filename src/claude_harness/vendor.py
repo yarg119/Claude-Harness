@@ -1,7 +1,7 @@
 """Vendored third-party skills: pinned copies in claude/skills/ (Claude Code) and codex/skills/ (Codex).
 
 `harness skills` lists them; `harness skills update [name] [--ref REF]` re-fetches from the manifest,
-rewrites SKILL.md + SOURCE.md and prints a diff stat so the change can be reviewed before committing."""
+rewrites SKILL.md + SOURCE.md + the upstream LICENSE and prints a diff stat so the change can be reviewed before committing."""
 from __future__ import annotations
 
 import datetime as _dt
@@ -24,6 +24,14 @@ argument-hint: <file-or-pattern>
 """
 
 
+LICENSE_NAMES = ("LICENSE", "LICENSE.md", "LICENSE.txt", "LICENCE", "COPYING")
+
+
+def upstream_license(clone: Path) -> Path | None:
+    """The upstream license file. MIT and most permissive licenses require the notice to travel with copies."""
+    return next((clone / n for n in LICENSE_NAMES if (clone / n).is_file()), None)
+
+
 def load_manifest() -> list[dict]:
     return json.loads(MANIFEST.read_text())["skills"]
 
@@ -42,7 +50,7 @@ def transform(entry: dict, text: str) -> str:
 
 def source_note(entry: dict, ref: str) -> str:
     return (f"# Source\n\n- Upstream: {entry['repo']} (`{entry['path']}`)\n- Pinned commit: `{ref}`\n"
-            f"- License: {entry['license']}\n- Homepage: {entry.get('homepage', entry['repo'])}\n"
+            f"- License: {entry['license']} (upstream text in `LICENSE`, shipped with this copy)\n- Homepage: {entry.get('homepage', entry['repo'])}\n"
             f"- Vendored: {_dt.date.today().isoformat()} by `harness skills update`\n"
             + ("- Local change: Claude Code command frontmatter replaced with skill frontmatter; rules unchanged.\n"
                if entry.get("transform") == "command-to-skill" else "- Local change: none.\n")
@@ -68,8 +76,12 @@ def update(name: str | None = None, ref: str | None = None) -> list[str]:
                 clones[key] = d
             d = clones[key]
             sha = subprocess.run(["git", "-C", str(d), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+            lic = upstream_license(d)
+            if lic is None:
+                raise RuntimeError(f"{e['name']}: {e['repo']}@{sha[:10]} has no LICENSE file; not vendoring it without the notice")
             out = skill_dir(e)
             out.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(lic, out / "LICENSE")
             (out / "SKILL.md").write_text(transform(e, (d / e["path"]).read_text()))
             (out / "SOURCE.md").write_text(source_note(e, sha))
             for m in manifest["skills"]:

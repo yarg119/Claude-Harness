@@ -2,7 +2,7 @@
 
 - Upstream: https://github.com/vercel-labs/web-interface-guidelines (`command.md`)
 - Pinned commit: `e3d624baaf29dc1fc645aff3e38f03e564d2d6b1`
-- License: MIT
+- License: MIT (upstream text in `LICENSE`, shipped with this copy)
 - Homepage: https://vercel.com/design/guidelines
 - Vendored: 2026-10-02 by `harness skills update`
 - Local change: Claude Code command frontmatter replaced with skill frontmatter; rules unchanged.

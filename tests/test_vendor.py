@@ -19,6 +19,10 @@ def test_every_vendored_skill_is_present_pinned_and_named():
         src = (d / "SOURCE.md").read_text()
         assert e["ref"] in src and e["repo"] in src and e["license"] in src
         assert len(e["ref"]) == 40
+        lic = (d / "LICENSE").read_text()   # the upstream notice must ship with the copy (public repo)
+        assert "Copyright" in lic
+        if e["license"] == "MIT":
+            assert "Permission is hereby granted" in lic
 
 
 def test_command_to_skill_transform_keeps_rules_and_replaces_frontmatter():
